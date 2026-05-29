@@ -90,12 +90,12 @@ export async function getAllMBTIProfiles(): Promise<Pick<MBTIProfile, "type" | "
 // ── Save result ───────────────────────────────────────────────────────────────
 
 export interface SaveMBTIResultInput {
-  mbtiType:      string
-  scores:        Record<string, number>
-  answers?:      unknown[]   // MBTIAnswer[] — serialised as JSON
+  mbtiType:       string
+  scores:         Record<string, number>
+  answers?:       Record<string, unknown>[]  // MBTIAnswer[] — serialised as JSON
   answeredCount?: number
-  durationMs?:   number
-  userId?:       string
+  durationMs?:    number
+  userId?:        string
 }
 
 export async function saveMBTIResult(input: SaveMBTIResultInput): Promise<string> {
@@ -103,7 +103,8 @@ export async function saveMBTIResult(input: SaveMBTIResultInput): Promise<string
     data: {
       mbtiType:      input.mbtiType,
       scores:        input.scores,
-      answers:       input.answers       ?? undefined,
+      // JSON.parse(JSON.stringify(...)) strips class instances → plain InputJsonValue
+      answers:       input.answers ? JSON.parse(JSON.stringify(input.answers)) : undefined,
       answeredCount: input.answeredCount ?? undefined,
       durationMs:    input.durationMs    ?? undefined,
       userId:        input.userId        ?? null,

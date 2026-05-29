@@ -21,7 +21,7 @@ export async function saveQuizResult(payload: SaveResultPayload): Promise<string
   return saveMBTIResult({
     mbtiType:      payload.result.type,
     scores:        payload.result.scores,
-    answers:       payload.answers as unknown[],
+    answers:       payload.answers as unknown as Record<string, unknown>[],
     answeredCount: payload.answers.length,
     durationMs:    payload.durationMs,
     userId:        undefined,   // TODO: pass auth userId once Clerk is wired
