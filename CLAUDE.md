@@ -1,6 +1,16 @@
 @AGENTS.md
 # CLAUDE.md
 
+## Git Rules
+
+**ห้าม** `git commit` หรือ `git push` ทุกกรณี เว้นแต่ผู้ใช้สั่งโดยตรงเท่านั้น
+
+- ❌ ห้าม commit โดยอัตโนมัติหลังแก้ code
+- ❌ ห้าม push โดยอัตโนมัติหลัง commit
+- ✅ ทำได้เฉพาะเมื่อผู้ใช้พิมพ์ "commit" หรือ "push" อย่างชัดเจน
+
+---
+
 ## Project Overview
 
 This project is an AI-powered TCAS university admission analysis platform for Thai students.
