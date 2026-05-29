@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Universities ──────────────────────────────────────────────────────────────
+model University {
+  id        String   @id @default(cuid())
+  slug      String   @unique  // e.g. "cu", "tu", "mu"
+  name      String            // ชื่อเต็ม เช่น "จุฬาลงกรณ์มหาวิทยาลัย"
+  shortName String            // ชื่อย่อ เช่น "จุฬาฯ"
+  location  String            // จังหวัด
+  color     String   @default("#16a34a")  // brand color hex
+  logoUrl   String?           // URL รูปโลโก้จาก Supabase Storage (nullable)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  faculties Faculty[]
+}
+
+// ── Faculties ─────────────────────────────────────────────────────────────────
+model Faculty {
+  id           String       @id @default(cuid())
+  universityId String
+  slug         String       // identity key: lower(uni|faculty|program|major|detail)
+  name         String       // ชื่อคณะ
+  program      String       // ชื่อหลักสูตร
+  majorName    String?      // แขนง/วิชาเอก (ถ้ามี)
+  detail       String?      // รายละเอียด/โครงการ เช่น "เลือกสอบภาษาเกาหลี"
+  field        FacultyField @default(other)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  university   University          @relation(fields: [universityId], references: [id], onDelete: Cascade)
+  scores       TcasScore[]
+  predictions  PredictionHistory[]
+  requirement  FacultyRequirement?
+
+  @@unique([universityId, slug])
+}
+
+enum FacultyField {
+  medicine
+  engineering
+  law
+  accounting
+  nursing
+  economics
+  liberal_arts
+  science
+  political_science
+  architecture
+  dentistry
+  pharmacy
+  ict
+  business
+  other
+}
+
+// ── Faculty Requirements (weights จาก mytcas) ─────────────────────────────────
+model FacultyRequirement {
+  id          String   @id @default(cuid())
+  facultyId   String   @unique
+  year        Int      // ปีที่ weights อ้างอิง (พ.ศ.) เช่น 2569
+  weights     Json     // { "tgat1": 30, "a_lv_63": 25, ... } — weight เป็น % รวม 100
+  estMinScore Float?   // คะแนนขั้นต่ำ predict ปีหน้า (จาก mytcas est_min_score_mean)
+  updatedAt   DateTime @updatedAt
+
+  faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+}
+
+// ── TCAS Scores ───────────────────────────────────────────────────────────────
+model TcasScore {
+  id          String  @id @default(cuid())
+  facultyId   String
+  year        Int     // ปี พ.ศ. เช่น 2567
+  round       Int     @default(3)   // รอบ TCAS (1-4)
+  programCode String?               // รหัสหลักสูตรของปีนั้น (ย้ายมาจาก Faculty)
+  minScore    Float
+  avgScore    Float
+  maxScore    Float?
+  seats       Int?
+
+  faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+
+  @@unique([facultyId, year, round])
+  @@index([programCode])
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String?  @unique  // สำหรับ Clerk auth (Phase 2)
+  email     String?  @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  predictions PredictionHistory[]
+}
+
+// ── Prediction History ────────────────────────────────────────────────────────
+model PredictionHistory {
+  id        String          @id @default(cuid())
+  userId    String
+  facultyId String
+  userScore Float
+  chance    AdmissionChance
+  gap       Float           // userScore - minScore
+  createdAt DateTime        @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+}
+
+enum AdmissionChance {
+  high
+  competitive
+  low
+}
+
+// ── MBTI ──────────────────────────────────────────────────────────────────────
+
+enum MBTIDimension {
+  EI
+  SN
+  TF
+  JP
+}
+
+/** One question in the MBTI quiz */
+model MBTIQuestion {
+  id        String        @id @default(cuid())
+  order     Int           // 1-based display order
+  dimension MBTIDimension
+  text      String
+  optionA   String        // → first letter (E, S, T, J)  [or reversed if isReverse=true]
+  optionB   String        // → second letter (I, N, F, P) [or reversed if isReverse=true]
+  // ── Psychometric metadata ────────────────────────────────
+  weight    Float         @default(1.0)   // discrimination weight 0.5–2.0; higher = more influential
+  isReverse Boolean       @default(false) // true = A/B polarity is flipped (A→B-pole, B→A-pole)
+  category  String?       // "social" | "planning" | "decision" | "perception" | "stress" | "emotion"
+  // ────────────────────────────────────────────────────────
+  version   Int           @default(1)
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+
+  @@index([active, order])
+}
+
+/** Personality profile for each of the 16 MBTI types */
+model MBTIProfile {
+  id          String   @id @default(cuid())
+  type        String   @unique  // e.g. "INTJ"
+  nickname    String            // "สถาปนิก"
+  emoji       String
+  tagline     String
+  description String   @db.Text
+  strengths   Json              // string[]
+  careers     Json              // string[]
+  color       String            // tailwind color class, e.g. "text-purple-700"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  facultyMatches FacultyMBTIMatch[]
+  results        MBTIResult[]
+}
+
+/** Weighted faculty-field recommendation for each MBTI type */
+model FacultyMBTIMatch {
+  id       String  @id @default(cuid())
+  mbtiType String
+  field    String  // faculty field label (Thai), e.g. "วิศวกรรมศาสตร์"
+  score    Float   @default(0.8)  // 0.0–1.0 compatibility weight
+  reason   String                 // one-line Thai explanation
+  rank     Int     @default(1)    // display order within the type (1 = top match)
+
+  profile MBTIProfile @relation(fields: [mbtiType], references: [type], onDelete: Cascade)
+
+  @@unique([mbtiType, rank])
+  @@index([mbtiType])
+}
+
+/** Saved quiz result (anonymous or authenticated) */
+model MBTIResult {
+  id            String   @id @default(cuid())
+  userId        String?  // null = anonymous; matches User.id when signed in
+  mbtiType      String
+  scores        Json     // { E, I, S, N, T, F, J, P } raw counts
+  answers       Json?    // MBTIAnswer[] snapshot for analytics / re-scoring
+  answeredCount Int?     // how many questions were actually answered
+  durationMs    Int?     // total quiz time in milliseconds
+  createdAt     DateTime @default(now())
+
+  profile MBTIProfile @relation(fields: [mbtiType], references: [type])
+
+  @@index([userId])
+  @@index([mbtiType])
+}

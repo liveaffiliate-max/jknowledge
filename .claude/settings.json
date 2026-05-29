@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "$date = Get-Date -Format 'yyyy-MM-dd'; $time = Get-Date -Format 'HH:mm'; $dir = 'context/History_log'; if (!(Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }; $file = \"$dir/$date.md\"; if (!(Test-Path $file)) { Set-Content -Path $file -Value \"# History Log — $date`n\" -Encoding utf8 }; $changed = git diff --name-only HEAD 2>$null; if (!$changed) { $changed = (git status --short 2>$null) -join \"`n\" }; $entry = \"`n---`n`n## $time`n`n### Files changed`n``````\n$changed`n``````\n\"; Add-Content -Path $file -Value $entry -Encoding utf8",
+            "statusMessage": "Writing history log...",
+            "async": true
+          }
+        ]
+      }
+    ]
+  }
+}
