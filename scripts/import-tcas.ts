@@ -24,7 +24,7 @@ import { readFileSync } from "fs"
 import { join } from "path"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
-import { normalizeDetail } from "../src/lib/normalize-faculty"
+import { normalizeDetail, normalizeMajor } from "../src/lib/normalize-faculty"
 
 // ── Prisma setup ──────────────────────────────────────────────────────────────
 
@@ -282,37 +282,79 @@ async function upsertUniversity(name: string): Promise<string> {
   return created.id
 }
 
-// Cache: `${universityId}:${slug}` → facultyId
+// Cache: `${universityId}:${programCode}:${normMajor}` → facultyId  (Path A)
+//        `${universityId}:slug:${slug}`                 → facultyId  (Path B fallback)
 const facCache = new Map<string, string>()
 
 async function upsertFaculty(row: NormalizedRow, universityId: string): Promise<string> {
-  const slug     = makeFacultySlug(row.universityName, row.facultyName, row.programName, row.majorName, row.detail)
-  const cacheKey = `${universityId}:${slug}`
-  if (facCache.has(cacheKey)) return facCache.get(cacheKey)!
+  const field       = detectField(row.facultyName, row.programName) as never
+  const normMajor   = normalizeMajor(row.majorName)
+  const normDetail  = normalizeDetail(row.detail, row.facultyName)
+  const canonicalData = {
+    name:      row.facultyName || row.programName,
+    program:   row.programName,
+    majorName: row.majorName || null,
+    detail:    row.detail    || null,
+    field,
+  }
 
-  const field = detectField(row.facultyName, row.programName) as never
+  // ── Path A: programCode lookup (stable identity, ~85% of cases) ─────────────
+  // Find an existing Faculty in this university that already has a TcasScore
+  // with the same programCode + normalizedMajor.  Handles program/detail string
+  // changes across TCAS years without creating duplicate Faculty rows.
+  if (row.programCode) {
+    const cacheKeyA = `${universityId}:${row.programCode}:${normMajor}`
+    if (facCache.has(cacheKeyA)) return facCache.get(cacheKeyA)!
+
+    const existingScore = await prisma.tcasScore.findFirst({
+      where: {
+        programCode: row.programCode,
+        faculty: { universityId },
+      },
+      select: {
+        facultyId: true,
+        faculty: { select: { majorName: true, programCode: true } },
+      },
+    })
+
+    if (existingScore) {
+      const existNormMajor = normalizeMajor(existingScore.faculty.majorName)
+      // Accept if normalizedMajor matches, OR if one side has no major
+      // (handles TCAS64 null → TCAS65+ "ภาษาไทย" for programs with no international track)
+      if (existNormMajor === normMajor || !existNormMajor || !normMajor) {
+        // Update canonical fields to the latest import's strings
+        await prisma.faculty.update({
+          where: { id: existingScore.facultyId },
+          data: { ...canonicalData, programCode: row.programCode },
+        })
+        facCache.set(cacheKeyA, existingScore.facultyId)
+        return existingScore.facultyId
+      }
+    }
+  }
+
+  // ── Path B: slug-based upsert (fallback for COTMES / unstable codes) ─────────
+  const slug     = makeFacultySlug(row.universityName, row.facultyName, row.programName, row.majorName, row.detail)
+  const cacheKeyB = `${universityId}:slug:${slug}`
+  if (facCache.has(cacheKeyB)) return facCache.get(cacheKeyB)!
 
   const faculty = await prisma.faculty.upsert({
     where:  { universityId_slug: { universityId, slug } },
-    update: {
-      name:      row.facultyName || row.programName,
-      program:   row.programName,
-      majorName: row.majorName || null,
-      detail:    row.detail    || null,
-      field,
-    },
+    update: { ...canonicalData, programCode: row.programCode || null },
     create: {
       universityId,
       slug,
-      name:      row.facultyName || row.programName,
-      program:   row.programName,
-      majorName: row.majorName || null,
-      detail:    row.detail    || null,
-      field,
+      programCode: row.programCode || null,
+      ...canonicalData,
     },
   })
 
-  facCache.set(cacheKey, faculty.id)
+  // Cache under both Path B key AND Path A key (so next row with same code reuses it)
+  facCache.set(cacheKeyB, faculty.id)
+  if (row.programCode) {
+    const cacheKeyA = `${universityId}:${row.programCode}:${normMajor}`
+    facCache.set(cacheKeyA, faculty.id)
+  }
   return faculty.id
 }
 

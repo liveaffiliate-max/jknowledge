@@ -26,7 +26,8 @@ model University {
 model Faculty {
   id           String       @id @default(cuid())
   universityId String
-  slug         String       // identity key: lower(uni|faculty|program|major|detail)
+  slug         String       // fallback identity key (legacy + display)
+  programCode  String?      // รหัสหลักสูตร จาก ทปอ. — primary identity (stable across years)
   name         String       // ชื่อคณะ
   program      String       // ชื่อหลักสูตร
   majorName    String?      // แขนง/วิชาเอก (ถ้ามี)
@@ -41,6 +42,7 @@ model Faculty {
   requirement  FacultyRequirement?
 
   @@unique([universityId, slug])
+  @@index([programCode])
 }
 
 enum FacultyField {
