@@ -7,6 +7,7 @@ import { getMBTIProfile } from "@/data/mbti-types"
 import { dimensionStrength } from "@/utils/mbti"
 import type { MBTIResult } from "@/types/mbti"
 import { MBTI_ROLE_META } from "@/types/mbti"
+import { useToast } from "@/components/ui/toaster"
 import { Check, X, BarChart2, GraduationCap, Briefcase, AlertTriangle, Link2, Share2, BookOpen } from "lucide-react"
 
 interface MBTIResultCardProps {
@@ -50,6 +51,7 @@ function DimBar({ leftLabel, rightLabel, leftScore, rightScore, leftColor }: Dim
 export function MBTIResultCard({ result, onRestart }: MBTIResultCardProps) {
   const profile = getMBTIProfile(result.type)
   const { scores } = result
+  const { toast } = useToast()
 
   if (!profile) return null
 
@@ -233,9 +235,11 @@ export function MBTIResultCard({ result, onRestart }: MBTIResultCardProps) {
                 url: shareUrl,
               }).catch(() => {
                 navigator.clipboard?.writeText(shareUrl)
+                toast("คัดลอกลิงก์แล้ว")
               })
             } else {
               navigator.clipboard?.writeText(shareUrl)
+              toast("คัดลอกลิงก์แล้ว")
             }
           }}
           className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm"

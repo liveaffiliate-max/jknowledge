@@ -227,9 +227,47 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
       : fallbackScore !== "")
   const isLoading = isFetchingFaculties || isAnalyzing || isLoadingRequirement
 
+  // ── Derived step (1 | 2 | 3) ──────────────────────────────────────
+  const currentStep = result ? 3 : facultyId ? 2 : 1
+
   // ── Render ────────────────────────────────────────────────────────
   return (
     <form onSubmit={handleSubmit}>
+      {/* Step progress bar */}
+      <div className="mb-6 flex items-center gap-2">
+        {(["เลือกคณะ", "กรอกคะแนน", "ผลวิเคราะห์"] as const).map((label, i) => {
+          const step = i + 1
+          const done    = currentStep > step
+          const active  = currentStep === step
+          return (
+            <div key={label} className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={cn(
+                  "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors",
+                  done   ? "bg-green-500 text-white"
+                  : active ? "bg-green-600 text-white"
+                  : "bg-gray-100 text-gray-400"
+                )}>
+                  {done ? <Check className="h-3 w-3" /> : step}
+                </span>
+                <span className={cn(
+                  "text-xs font-medium truncate transition-colors",
+                  active ? "text-green-700" : done ? "text-green-600" : "text-gray-400"
+                )}>
+                  {label}
+                </span>
+              </div>
+              {i < 2 && (
+                <div className={cn(
+                  "flex-1 h-0.5 rounded-full transition-colors",
+                  done ? "bg-green-400" : "bg-gray-200"
+                )} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:items-start">
 
         {/* ─────────────────────── Left column ─────────────────────── */}

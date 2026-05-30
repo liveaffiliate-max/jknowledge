@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { normalizeDetail, normalizeMajor, normalizeProgram } from "@/lib/normalize-faculty"
 import type {
   FacultyField,
   FacultyPreview,
@@ -7,87 +8,6 @@ import type {
   University,
   UniversityWithStats,
 } from "@/types/tcas"
-
-// ── Normalizers for messy CSV data ───────────────────────────────────────────
-
-/**
- * Normalize program field for clean display:
- * "วท.บ. สาขาวิชาเกษตรศาสตร์"                     → "เกษตรศาสตร์"
- * "ค.บ. หลักสูตรปกติ"                              → "หลักสูตรปกติ"
- * "วิทยาศาสตรบัณฑิต (เกษตรศาสตร์) เกษตรศาสตร์"    → "เกษตรศาสตร์"
- * "พ.บ."                                           → "" (abbreviation only)
- */
-function normalizeProgram(s: string | null | undefined): string {
-  if (!s) return ""
-  const p = s.trim()
-  // Case 1: degree abbreviation (วท.บ. / ค.บ. / วศ.บ. etc.)
-  // Use afterAbbrev !== p to catch bare abbrevs like "พ.บ." (afterAbbrev = "")
-  const afterAbbrev = p.replace(/^[฀-๿.]+\.[฀-๿]\.\s*/u, "").trim()
-  if (afterAbbrev !== p) {
-    return afterAbbrev
-      .replace(/^สาขาวิชา\s*/, "")
-      .replace(/^สาขา\s*/, "")
-      .trim()
-    // Returns "" for bare abbreviations (filtered by .filter(Boolean) in display)
-  }
-  // Case 2: full Thai degree name with parenthesised subject
-  // e.g. "วิทยาศาสตรบัณฑิต (เกษตรศาสตร์) เกษตรศาสตร์" → "เกษตรศาสตร์"
-  const parenMatch = p.match(/\(([^)]+)\)/)
-  if (parenMatch) return parenMatch[1].trim()
-  return p
-}
-
-/**
- * Normalize majorName for clean display:
- * "วิชาเอกพืชสวน"                       → "พืชสวน"   (leading วิชาเอก stripped)
- * "เกษตรศาสตร์ วิชาเอกพืชสวน แผนที่ 1" → "พืชสวน แผนที่ 1" (mid-string วิชาเอก)
- * "หลักสูตรนานาชาติ"                    → "หลักสูตรนานาชาติ" (no วิชาเอก, keep as-is)
- */
-function normalizeMajor(s: string | null | undefined): string {
-  if (!s) return ""
-  // Strip leading วิชาเอก / เอก prefix (มก.-style)
-  const stripped = s.replace(/^(วิชาเอก|เอก)\s*/u, "").trim()
-  // Handle "SUBJECT วิชาเอกSPEC [แผนที่N]" pattern (มข.-style)
-  // e.g. "เกษตรศาสตร์ วิชาเอกพืชสวน แผนที่ 1" → "พืชสวน แผนที่ 1"
-  const match = stripped.match(/^.+?\s+วิชาเอก\s*(.+)$/)
-  if (match) return match[1].trim()
-  return stripped
-}
-
-/**
- * Normalize detail field — strip noise for display:
- * • Removes admission-method boilerplate (Admission, ใช้คะแนน, การรับตรง, ...)
- * • Removes redundant major concatenations (contains วิชาเอก)
- * • Removes strings that are just a prefix of the faculty name
- *
- * "การรับตรงร่วมกัน (รหัส 431613124-เศรษฐศาสตร์)" → "เศรษฐศาสตร์"
- * "Admission-หลักสูตร วิชาเอกภาษาไทย"              → "" (contains วิชาเอก)
- * "คณะเกษตรศาสตร์ เกษตรศาสตร์ วิชาเอกพืชสวน"      → "" (contains วิชาเอก)
- * "โครงการปกติ"                                    → "โครงการปกติ" ✓
- */
-function normalizeDetail(
-  s: string | null | undefined,
-  facultyName?: string
-): string {
-  if (!s) return ""
-  let d = s.trim()
-  // Format normalisation
-  d = d.replace(/^Admission-\s*/u, "")
-  const m = d.match(/การรับตรงร่วมกัน\s*\(รหัส\s*[\w-]+-([^)]+?)\s*\)?$/u)
-  if (m) d = m[1].replace(/\)$/, "").trim()
-  // Filter: admission-method boilerplate
-  if (/^Admission(\s|$|\()/iu.test(d)) return ""
-  if (/^ใช้คะแนน/.test(d))             return ""
-  if (/^การคัดเลือก/.test(d))          return ""
-  if (/^การรับตรง/.test(d))            return ""
-  if (/^รับตรง/.test(d))               return ""
-  // Filter: redundant concatenation that STARTS with the faculty name
-  // e.g. "คณะเกษตรศาสตร์ เกษตรศาสตร์ วิชาเอกพืชสวน แผนที่ 1" (มข.-style)
-  // NOTE: do NOT filter just because it contains "วิชาเอก" — that's a valid
-  // specialisation differentiator at e.g. จุฬา ("วิชาเอกเคมี", "วิชาเอกฟิสิกส์")
-  if (facultyName && d.startsWith(facultyName)) return ""
-  return d
-}
 
 // ── Latest TCAS year ──────────────────────────────────────────────────────────
 

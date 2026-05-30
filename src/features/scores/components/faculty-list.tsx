@@ -52,9 +52,15 @@ export function FacultyList({ faculties, universitySlug }: FacultyListProps) {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center text-gray-400">
-          <Search className="mx-auto h-10 w-10 mb-2 text-gray-300" />
-          <p className="text-sm">ไม่พบคณะที่ค้นหา</p>
+        <div className="py-16 text-center text-gray-400 space-y-3">
+          <Search className="mx-auto h-10 w-10 text-gray-200" />
+          <p className="text-sm font-medium text-gray-500">ไม่พบ &ldquo;{query}&rdquo;</p>
+          <button
+            onClick={() => setQuery("")}
+            className="text-xs text-green-600 hover:underline"
+          >
+            ล้างการค้นหา
+          </button>
         </div>
       ) : (
         <div className="divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white overflow-hidden">

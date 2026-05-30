@@ -24,6 +24,7 @@ import { readFileSync } from "fs"
 import { join } from "path"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { normalizeDetail } from "../src/lib/normalize-faculty"
 
 // ── Prisma setup ──────────────────────────────────────────────────────────────
 
@@ -76,9 +77,10 @@ function readCsv(filePath: string): CsvRow[] {
 }
 
 /**
- * Faculty identity slug — stable across years
- * lower(universityName|facultyName|programName|majorName|detail)
- * Max 512 chars (safety limit for DB)
+ * Faculty identity slug — stable across years.
+ * Uses normalizeDetail so verbose "คณะ... ภาคปกติ" and bare "ภาคปกติ" hash to
+ * the same slug, preventing duplicate Faculty rows when the detail format
+ * changes between TCAS years.
  */
 function makeFacultySlug(
   universityName: string,
@@ -87,7 +89,8 @@ function makeFacultySlug(
   majorName:      string,
   detail:         string
 ): string {
-  return [universityName, facultyName, programName, majorName, detail]
+  const normDetail = normalizeDetail(detail, facultyName)
+  return [universityName, facultyName, programName, majorName, normDetail]
     .map(s => s.trim().toLowerCase())
     .join("|")
     .slice(0, 512)

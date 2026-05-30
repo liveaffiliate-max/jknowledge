@@ -26,7 +26,7 @@ export default function MBTIPage() {
               ตอบ 20 คำถามสั้น ๆ เพื่อค้นพบ 1 ใน 16 บุคลิกภาพของคุณ พร้อมคำแนะนำคณะที่เหมาะสม
             </p>
             <div className="flex flex-wrap gap-2 mt-3 ml-9">
-              {["16 ประเภทบุคลิกภาพ", "20 คำถาม", "ใช้เวลา ~3 นาที", "แชร์ได้"].map((tag) => (
+              {["16 ประเภทบุคลิกภาพ",  "ใช้เวลา ~3 นาที", "แชร์ได้"].map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700"

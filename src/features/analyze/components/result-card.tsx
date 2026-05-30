@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { chanceColor, chanceLabel } from "@/utils/analyze"
-import { ScoreTrendChart } from "./score-trend-chart"
+import { ScoreTrendChartLazy as ScoreTrendChart } from "./score-trend-chart-lazy"
 import { ScorePositionBar } from "./score-position-bar"
 import type { AdmissionResult } from "@/types/tcas"
 import {

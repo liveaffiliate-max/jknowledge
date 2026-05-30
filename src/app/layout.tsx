@@ -3,6 +3,10 @@ import { shadcn } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/toaster";
+import { ScrollToTop } from "@/components/ui/scroll-to-top";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { PageTransition } from "@/components/layout/page-transition";
 import "./globals.css";
 
 const kanit = localFont({
@@ -47,8 +51,14 @@ export default function RootLayout({
   return (
     <ClerkProvider appearance={{ theme: shadcn }}>
       <html lang="th" className={`${kanit.variable} ${geistMono.variable} h-full antialiased`}>
-        <body className="min-h-full flex flex-col bg-background text-foreground">
-          {children}
+        <body className="min-h-full flex flex-col bg-background text-foreground pb-[56px] sm:pb-0">
+          <Toaster>
+            <PageTransition>
+              {children}
+            </PageTransition>
+            <ScrollToTop />
+            <BottomNav />
+          </Toaster>
         </body>
       </html>
     </ClerkProvider>

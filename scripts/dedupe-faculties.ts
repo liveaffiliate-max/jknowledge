@@ -19,12 +19,14 @@ config({ path: ".env.local" })
 
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { normalizeDetail } from "../src/lib/normalize-faculty"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
 
-function makeNewSlug(program: string, majorName: string | null, detail: string | null): string {
-  return [program, majorName, detail].filter(Boolean).join(":")
+function makeNewSlug(program: string, majorName: string | null, detail: string | null, facultyName: string): string {
+  const normDetail = normalizeDetail(detail, facultyName)
+  return [program, majorName, normDetail].filter(Boolean).join(":")
 }
 
 async function main() {
@@ -43,10 +45,15 @@ async function main() {
 
   console.log(`Found ${faculties.length} total Faculty records\n`)
 
-  // Group by (universityId, name, program, majorName, detail)
+  // Group by (universityId, name, program, majorName, normalizedDetail).
+  // Using normalizeDetail here is critical: the same logical faculty can have
+  // different raw detail strings across TCAS years (e.g. a verbose
+  // "คณะวิทยาศาสตร์ ... ภาคปกติ" in year A vs bare "" or "ภาคปกติ" in year B).
+  // Normalizing before grouping catches these cross-year duplicates.
   const groups = new Map<string, typeof faculties>()
   for (const f of faculties) {
-    const key = [f.universityId, f.name, f.program, f.majorName ?? "", f.detail ?? ""].join("|")
+    const normDetail = normalizeDetail(f.detail, f.name)
+    const key = [f.universityId, f.name, f.program, f.majorName ?? "", normDetail].join("|")
     if (!groups.has(key)) groups.set(key, [])
     groups.get(key)!.push(f)
   }
@@ -107,9 +114,9 @@ async function main() {
         data: { facultyId: canonical.id },
       })
 
-      // ── Delete duplicate ───────────────────────────────────────────────────
-      await prisma.faculty.delete({ where: { id: dup.id } })
-      totalRemoved++
+      // ── Delete duplicate (deleteMany = no-throw if already gone) ──────────
+      const deleted = await prisma.faculty.deleteMany({ where: { id: dup.id } })
+      if (deleted.count > 0) totalRemoved++
     }
   }
 
@@ -125,7 +132,7 @@ async function main() {
   let skipCount = 0
 
   for (const f of remaining) {
-    const newSlug = makeNewSlug(f.program, f.majorName, f.detail)
+    const newSlug = makeNewSlug(f.program, f.majorName, f.detail, f.name)
     if (f.slug === newSlug) continue
 
     // Guard against collision within same university

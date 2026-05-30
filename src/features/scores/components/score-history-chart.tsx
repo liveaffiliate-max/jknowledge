@@ -44,6 +44,19 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
+  if (scores.length < 2) {
+    return (
+      <div className="flex h-[240px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-center">
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium text-gray-400">
+            {scores.length === 0 ? "ยังไม่มีข้อมูลคะแนน" : "มีข้อมูลแค่ 1 ปี"}
+          </p>
+          <p className="text-xs text-gray-300">ต้องมีข้อมูลอย่างน้อย 2 ปีเพื่อแสดงกราฟ</p>
+        </div>
+      </div>
+    )
+  }
+
   const data = [...scores]
     .sort((a, b) => a.year - b.year)
     .map((s) => ({

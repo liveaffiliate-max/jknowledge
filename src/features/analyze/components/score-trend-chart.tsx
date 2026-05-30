@@ -46,6 +46,14 @@ function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
 }
 
 export function ScoreTrendChart({ scores, userScore }: ScoreTrendChartProps) {
+  if (scores.length < 2) {
+    return (
+      <div className="flex h-[220px] items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-center">
+        <p className="text-sm text-gray-400">ข้อมูลไม่เพียงพอสำหรับแสดงกราฟแนวโน้ม</p>
+      </div>
+    )
+  }
+
   const data = [...scores]
     .sort((a, b) => a.year - b.year)
     .map((s) => ({

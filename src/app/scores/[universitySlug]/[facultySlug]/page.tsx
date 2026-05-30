@@ -3,11 +3,12 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import Header from "@/components/layout/header"
 import { ScoreTable } from "@/features/scores/components/score-table"
-import { ScoreHistoryChart } from "@/features/scores/components/score-history-chart"
+import { ScoreHistoryChartLazy as ScoreHistoryChart } from "@/features/scores/components/score-history-chart-lazy"
 import { FIELD_COLORS, FIELD_LABELS } from "@/features/scores/lib/field-labels"
 import { getFacultyWithScores } from "@/server/queries"
 import { cn } from "@/lib/utils"
 import { calculateTrend } from "@/utils/analyze"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { TrendingUp, TrendingDown, Minus, MapPin, ClipboardList, AlertTriangle, type LucideIcon } from "lucide-react"
 
 // NOTE: [facultySlug] segment carries the faculty's cuid (ID), not the slug string.
@@ -68,22 +69,13 @@ export default async function FacultyScorePage({ params }: Props) {
         <div className="bg-white border-b border-gray-100">
           <div className="mx-auto max-w-4xl px-4 py-8">
             {/* Breadcrumb */}
-            <nav className="mb-4 flex items-center gap-1.5 text-xs text-gray-400">
-              <Link href="/scores" className="hover:text-green-600 transition-colors">
-                คะแนนย้อนหลัง
-              </Link>
-              <span>/</span>
-              <Link
-                href={`/scores/${uni.slug}`}
-                className="hover:text-green-600 transition-colors"
-              >
-                {uni.shortName}
-              </Link>
-              <span>/</span>
-              <span className="text-gray-600 font-medium line-clamp-1">
-                {faculty.name}
-              </span>
-            </nav>
+            <div className="mb-4">
+              <Breadcrumb items={[
+                { label: "คะแนนย้อนหลัง", href: "/scores" },
+                { label: uni.shortName, href: `/scores/${uni.slug}` },
+                { label: faculty.name },
+              ]} />
+            </div>
 
             {/* Faculty title */}
             <div className="flex items-start gap-3">

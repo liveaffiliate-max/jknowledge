@@ -50,9 +50,15 @@ export function UniversityGrid({ universities }: UniversityGridProps) {
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center text-gray-400">
-          <School className="mx-auto h-10 w-10 mb-2 text-gray-300" />
-          <p className="text-sm">ไม่พบมหาวิทยาลัยที่ค้นหา</p>
+        <div className="py-16 text-center text-gray-400 space-y-3">
+          <School className="mx-auto h-10 w-10 text-gray-200" />
+          <p className="text-sm font-medium text-gray-500">ไม่พบ &ldquo;{query}&rdquo;</p>
+          <button
+            onClick={() => setQuery("")}
+            className="text-xs text-green-600 hover:underline"
+          >
+            ล้างการค้นหา
+          </button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
