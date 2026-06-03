@@ -43,6 +43,7 @@ export const metadata: Metadata = {
   description:
     "แพลตฟอร์มวิเคราะห์คะแนน TCAS สำหรับนักเรียนไทย ทำนายโอกาสรับ เปรียบเทียบคะแนนย้อนหลัง และรับคำแนะนำคณะตาม MBTI",
   keywords: ["TCAS", "คะแนนย้อนหลัง", "คณะไหนดี", "MBTI คณะ", "TCAS calculator"],
+  icons: { icon: "/jknowledge_logo.png" },
 };
 
 export default function RootLayout({
