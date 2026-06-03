@@ -58,23 +58,23 @@ export function ResultCard({ result }: ResultCardProps) {
         {/* ── Score summary row ── */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className={cn("rounded-xl p-3", color.bg)}>
-            <p className="text-xs text-gray-500 mb-0.5">คะแนนคุณ</p>
-            <p className={cn("text-2xl font-bold tabular-nums", color.text)}>{userScore.toFixed(1)}</p>
+            <p className="text-[10px] text-gray-500 mb-0.5">คะแนนคุณ</p>
+            <p className={cn("text-lg font-bold tabular-nums sm:text-2xl", color.text)}>{userScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-xs text-gray-500 mb-0.5">ต่ำสุด</p>
-            <p className="text-2xl font-bold tabular-nums text-gray-700">{latestMinScore.toFixed(1)}</p>
+            <p className="text-[10px] text-gray-500 mb-0.5">ต่ำสุด</p>
+            <p className="text-lg font-bold tabular-nums sm:text-2xl text-gray-700">{latestMinScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-xs text-gray-500 mb-0.5">เฉลี่ย</p>
-            <p className="text-2xl font-bold tabular-nums text-gray-700">{latestAvgScore.toFixed(1)}</p>
+            <p className="text-[10px] text-gray-500 mb-0.5">เฉลี่ย</p>
+            <p className="text-lg font-bold tabular-nums sm:text-2xl text-gray-700">{latestAvgScore.toFixed(1)}</p>
           </div>
         </div>
 
         {/* ── Gap badge ── */}
-        <div className="flex items-center justify-between rounded-xl border border-border/50 bg-gray-50 px-4 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-xl border border-border/50 bg-gray-50 px-4 py-2.5">
           <span className="text-sm text-gray-600">ห่างจากคะแนนต่ำสุด</span>
-          <span className={cn("text-lg font-bold", gap >= 0 ? "text-green-600" : "text-red-500")}>
+          <span className={cn("text-base font-bold tabular-nums sm:text-lg", gap >= 0 ? "text-green-600" : "text-red-500")}>
             {gap >= 0 ? "+" : ""}{gap.toFixed(1)} คะแนน
           </span>
         </div>

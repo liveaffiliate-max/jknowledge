@@ -65,7 +65,7 @@ function SubjectRow({
       </div>
 
       {/* Subject name + weight badge */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <p className="text-sm font-medium text-gray-800 leading-tight truncate">
           {subject.label}
         </p>

@@ -268,7 +268,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
           const active  = currentStep === step
           return (
             <div key={label} className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                 <span className={cn(
                   "flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors",
                   done   ? "bg-green-500 text-white"
@@ -278,7 +278,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
                   {done ? <Check className="h-3 w-3" /> : step}
                 </span>
                 <span className={cn(
-                  "text-xs font-medium truncate transition-colors",
+                  "hidden min-[400px]:block text-xs font-medium truncate transition-colors",
                   active ? "text-green-700" : done ? "text-green-600" : "text-gray-400"
                 )}>
                   {label}
