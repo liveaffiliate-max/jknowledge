@@ -3,7 +3,8 @@ import { shadcn } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Geist_Mono } from "next/font/google";
-import { GoogleAnalytics } from "@next/third-parties/google";
+import { GoogleAnalytics } from "@next/third-parties/google"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/toaster";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -62,6 +63,7 @@ export default function RootLayout({
           </Toaster>
         </body>
         <GoogleAnalytics gaId="G-852N4SM4ND" />
+        <SpeedInsights />
       </html>
     </ClerkProvider>
   );
