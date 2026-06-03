@@ -8,236 +8,88 @@ Before making product, UX, design, architecture, or database decisions, read the
 
 ## Source of Truth (Highest Priority)
 
-These files define the long-term direction of the project.
-
 ### PRODUCT.md
-
-Purpose:
-
-* Product vision
-* Target users
-* Product goals
-* Brand personality
-* Product principles
-* Success metrics
-
-Read when:
-
-* Building new features
-* Making product decisions
-* Prioritizing functionality
-
----
+- Product vision, target users, goals, brand personality, success metrics
+- Read when: building features, making product decisions, prioritizing functionality
 
 ### UX.md
-
-Purpose:
-
-* User psychology
-* User journeys
-* Interaction principles
-* Information hierarchy
-* Loading states
-* Empty states
-* Decision-making flows
-
-Read when:
-
-* Designing flows
-* Building forms
-* Creating onboarding
-* Designing analysis experiences
-
----
+- User psychology, user journeys, interaction principles, loading/empty states
+- Read when: designing flows, building forms, creating onboarding
 
 ### DESIGN.md
-
-Purpose:
-
-* Visual language
-* Colors
-* Typography
-* Components
-* Spacing
-* Elevation
-* Design constraints
-
-Read when:
-
-* Creating UI
-* Styling components
-* Building layouts
-* Designing charts
+- Visual language, colors, typography, components, spacing, elevation
+- Read when: creating UI, styling components, building layouts
 
 ---
 
-## Project Context
-
-Located in:
-
-context/
-
-These documents evolve frequently and contain implementation details.
-
----
+## Project Context (`context/`)
 
 ### context/architecture.md
-
-Contains:
-
-* System architecture
-* Folder structure
-* Technical decisions
-* Application boundaries
-
-Read when:
-
-* Refactoring
-* Designing backend/frontend structure
-* Creating new modules
-
----
+- System architecture, folder structure, technical decisions
+- Read when: refactoring, designing backend/frontend structure
 
 ### context/business-rules.md
-
-Contains:
-
-* TCAS rules
-* Admission logic
-* Score calculation rules
-* Prediction rules
-
-Read when:
-
-* Implementing business logic
-* Working with score analysis
-* Building prediction systems
-
----
+- TCAS rules, admission logic, score calculation, prediction rules
+- Read when: implementing business logic, working with score analysis
 
 ### context/database.md
-
-Contains:
-
-* Database history
-* Schema changes
-* Migration records
-* Data decisions
-
-Read when:
-
-* Modifying Prisma schema
-* Database migrations
-* Data modeling
-
-Must update after any database-related work.
-
----
+- Database history, schema changes, migration records
+- Read when: modifying Prisma schema, database migrations
+- **Must update after any database-related work**
 
 ### context/planning.md
-
-Contains:
-
-* Current plans
-* Upcoming work
-* Development priorities
-
-Read when:
-
-* Planning new work
-* Evaluating priorities
-
----
+- Current plans, upcoming work, development priorities
+- Read when: planning new work, evaluating priorities
 
 ### context/progress.md
-
-Contains:
-
-* Current project status
-* Completed work
-* Active work
-
-Read when:
-
-* Continuing existing tasks
-* Checking implementation status
+- Current project status, completed work, active work
+- Read when: continuing existing tasks, checking implementation status
 
 ---
 
-## Feature Specifications
+## Feature Specifications (`context/features/`)
 
-Located in:
+Each file defines a specific feature (e.g. `history-score.md`, `tcas-analysis.md`, `mbti.md`).
 
-context/features/
-
-Each file defines a specific feature.
-
-Examples:
-
-* history-score.md
-* tcas-analysis.md
-* mbti.md
-* mbti-core.md
-
-Read before:
-
-* Creating a feature
-* Modifying a feature
-* Refactoring feature logic
-
-Feature specs override generic assumptions.
+Read before creating, modifying, or refactoring any feature. **Feature specs override generic assumptions.**
 
 ---
 
-## Roadmaps
+## Roadmaps (`context/roadmap/`)
 
-Located in:
-
-context/roadmap/
-
-Contains:
-
-* MVP roadmap
-* Phase roadmap
-* Future plans
-
-Used for long-term planning only.
-
-Do not treat roadmap items as implemented features.
+Long-term planning only. Do not treat roadmap items as implemented features.
 
 ---
 
-## Development Logs
+## Development Logs (`context/History_log/`)
 
-Located in:
-
-context/History_log/
-
-Contains:
-
-* Daily implementation logs
-* Session history
-* Development decisions
-
-Use when:
-
-* Understanding previous work
-* Investigating regressions
-* Reconstructing implementation history
+Daily implementation logs and development decisions.
+Use when: understanding previous work, investigating regressions.
 
 ---
 
-# Document Priority Order
+## Document Priority Order
 
-When documents conflict:
+When documents conflict, follow the higher-priority document:
 
 1. PRODUCT.md
 2. UX.md
 3. DESIGN.md
-4. Feature Specification
+4. Feature Specifications
 5. Business Rules
 6. Architecture
 7. Roadmap
 8. CLAUDE.md
 
-Follow the higher-priority document.
+---
+
+## Before Implementing Features
+
+1. Understand the user request
+2. Read relevant documentation
+3. State assumptions if necessary
+4. Create the smallest valid solution
+5. Verify success criteria
+6. Update required logs
+
+Do not make assumptions when documentation already exists.
