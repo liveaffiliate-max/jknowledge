@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils"
 
 const BASE_ITEMS = [
   { href: "/",        label: "หน้าหลัก",  icon: Home           },
-  { href: "/analyze", label: "วิเคราะห์", icon: BarChart2       },
-  { href: "/scores",  label: "คะแนน",     icon: Landmark        },
+  { href: "/analyze", label: "วิเคราะห์คะแนน", icon: BarChart2       },
+  { href: "/scores",  label: "คะแนนย้อนหลัง",     icon: Landmark        },
   { href: "/mbti",    label: "MBTI",       icon: Brain           },
 ]
 

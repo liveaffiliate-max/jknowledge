@@ -39,9 +39,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Jknowledge — วิเคราะห์คะแนน TCAS ด้วย AI",
+  title: "Jknowledge — วิเคราะห์คะแนน TCAS และค้นหาคณะตาม MBTI",
   description:
-    "แพลตฟอร์มวิเคราะห์คะแนน TCAS สำหรับนักเรียนไทย ทำนายโอกาสรับ เปรียบเทียบคะแนนย้อนหลัง และรับคำแนะนำคณะตาม MBTI",
+    "แพลตฟอร์มวิเคราะห์คะแนน TCAS สำหรับนักเรียนไทย ทำนายโอกาสรับ เปรียบเทียบคะแนนย้อนหลัง และคำแนะนำคณะตาม MBTI",
   keywords: ["TCAS", "คะแนนย้อนหลัง", "คณะไหนดี", "MBTI คณะ", "TCAS calculator"],
   icons: { icon: "/jknowledge_logo.png" },
 };
