@@ -58,23 +58,36 @@ export function ScorePositionBar({
           style={{ left: `${avgPct}%` }}
         />
 
-        {/* minScore marker */}
+        {/* minScore marker — label pinned left if near edge */}
         <div
           className="absolute top-0 h-full w-0.5 bg-red-400"
           style={{ left: `${minPct}%` }}
         >
-          <span className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-red-500">
-            min {minScore.toFixed(0)}
+          <span
+            className="absolute -top-5 whitespace-nowrap text-xs text-red-500"
+            style={{
+              left: minPct < 15 ? "0" : "50%",
+              transform: minPct < 15 ? "none" : "translateX(-50%)",
+            }}
+          >
+            {minScore.toFixed(0)}
           </span>
         </div>
 
-        {/* avgScore marker */}
+        {/* avgScore marker — label pinned right if near edge */}
         <div
           className="absolute top-0 h-full w-0.5 bg-yellow-500"
           style={{ left: `${avgPct}%` }}
         >
-          <span className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] text-yellow-600">
-            avg {avgScore.toFixed(0)}
+          <span
+            className="absolute -top-5 whitespace-nowrap text-xs text-yellow-600"
+            style={{
+              right: avgPct > 85 ? "0" : "auto",
+              left: avgPct > 85 ? "auto" : avgPct < 15 ? "0" : "50%",
+              transform: avgPct > 85 || avgPct < 15 ? "none" : "translateX(-50%)",
+            }}
+          >
+            เฉลี่ย {avgScore.toFixed(0)}
           </span>
         </div>
 
@@ -86,7 +99,7 @@ export function ScorePositionBar({
           )}
           style={{ left: `${userPct}%` }}
         >
-          <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold text-gray-700">
+          <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold text-gray-700">
             {userScore.toFixed(1)}
           </span>
         </div>

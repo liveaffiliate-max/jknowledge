@@ -106,14 +106,14 @@ function FacultyRow({
         <div className="mt-1.5 flex items-center gap-2 flex-wrap">
           <span
             className={cn(
-              "inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium",
+              "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
               fieldColor
             )}
           >
             {fieldLabel}
           </span>
           {f.scoreCount > 0 && (
-            <span className="text-[10px] text-gray-400">
+            <span className="text-xs text-gray-400">
               ข้อมูล {f.scoreCount} ปี
             </span>
           )}
@@ -125,25 +125,25 @@ function FacultyRow({
         {f.latestYear && f.latestMinScore !== null ? (
           <>
             <div className="hidden sm:block">
-              <p className="text-[10px] text-gray-400 mb-0.5">
+              <p className="text-xs text-gray-400 mb-0.5">
                 TCAS{f.latestYear - 2500}
               </p>
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="text-[10px] text-gray-400">ต่ำสุด</p>
+                  <p className="text-xs text-gray-400">ต่ำสุด</p>
                   <p className="text-sm font-bold text-red-500">
                     {f.latestMinScore.toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-gray-400">เฉลี่ย</p>
+                  <p className="text-xs text-gray-400">เฉลี่ย</p>
                   <p className="text-sm font-semibold text-amber-500">
                     {f.latestAvgScore?.toFixed(2) ?? "—"}
                   </p>
                 </div>
                 {f.latestSeats !== null && (
                   <div>
-                    <p className="text-[10px] text-gray-400">ที่นั่ง</p>
+                    <p className="text-xs text-gray-400">ที่นั่ง</p>
                     <p className="text-sm font-medium text-gray-600">
                       {f.latestSeats}
                     </p>
@@ -153,7 +153,7 @@ function FacultyRow({
             </div>
             {/* Mobile: only min score */}
             <div className="sm:hidden text-right">
-              <p className="text-[10px] text-gray-400">ต่ำสุด</p>
+              <p className="text-xs text-gray-400">ต่ำสุด</p>
               <p className="text-sm font-bold text-red-500">
                 {f.latestMinScore.toFixed(2)}
               </p>

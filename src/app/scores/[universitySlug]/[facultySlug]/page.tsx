@@ -88,18 +88,18 @@ export default async function FacultyScorePage({ params }: Props) {
                 {fieldLabel}
               </span>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 leading-snug">
+                <h1 className="text-xl font-bold text-gray-900 leading-snug break-words">
                   {displayName}
                 </h1>
-                <p className="mt-1 text-sm text-gray-500 flex items-center gap-1.5">
+                <p className="mt-1 text-sm text-gray-500 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                   <span
-                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: uni.color }}
                   />
-                  {uni.name}
+                  <span className="break-words">{uni.name}</span>
                   <span className="text-gray-300">·</span>
-                  <MapPin className="h-3.5 w-3.5" />
-                  {uni.location}
+                  <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>{uni.location}</span>
                 </p>
               </div>
             </div>
@@ -236,9 +236,9 @@ function StatCard({
 }) {
   return (
     <div className={cn("rounded-xl p-4", bg)}>
-      <p className="text-[10px] text-gray-500 mb-1">{label}</p>
-      <p className={cn("text-2xl font-bold leading-none", accent)}>{value}</p>
-      <p className="text-[9px] text-gray-400 mt-1">{sub}</p>
+      <p className="text-xs text-gray-500 mb-1 leading-tight">{label}</p>
+      <p className={cn("text-xl font-bold leading-none tabular-nums", accent)}>{value}</p>
+      <p className="text-[10px] text-gray-400 mt-1 leading-tight">{sub}</p>
     </div>
   )
 }

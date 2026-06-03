@@ -25,7 +25,7 @@ export default async function ScoresPage() {
           <div className="mx-auto max-w-5xl px-4 py-10">
             <div className="flex items-center gap-3 mb-2">
               <Landmark className="h-7 w-7 text-gray-600 flex-shrink-0" />
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
                 คะแนน TCAS ย้อนหลัง
               </h1>
             </div>

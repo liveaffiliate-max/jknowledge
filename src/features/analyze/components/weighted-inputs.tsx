@@ -52,11 +52,11 @@ function SubjectRow({
   const contribution = hasValue ? (numVal * subject.weight) / 100 : null
 
   return (
-    <div className="flex items-center gap-2.5 py-3 border-b border-gray-50 last:border-0">
+    <div className="flex items-center gap-2 py-3 border-b border-gray-50 last:border-0">
       {/* Short code badge */}
       <div
         className={cn(
-          "flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-[11px] font-bold leading-none",
+          "flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold leading-none",
           cfg.bg,
           cfg.text
         )}
@@ -71,7 +71,7 @@ function SubjectRow({
         </p>
         <span
           className={cn(
-            "mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+            "mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-xs font-semibold",
             cfg.bg,
             cfg.text
           )}
@@ -102,8 +102,8 @@ function SubjectRow({
         <span className="text-xs text-gray-300">/100</span>
       </div>
 
-      {/* Contribution */}
-      <div className="w-14 text-right flex-shrink-0">
+      {/* Contribution — hidden on mobile to save space */}
+      <div className="hidden sm:block w-14 text-right flex-shrink-0">
         {contribution !== null ? (
           <span className="text-sm font-bold text-green-600">
             +{contribution.toFixed(2)}
@@ -196,7 +196,7 @@ export function WeightedInputs({
   return (
     <div className="space-y-3">
       {/* Column header (desktop hint) */}
-      <div className="hidden sm:flex items-center gap-2.5 px-1 text-[10px] text-gray-400">
+      <div className="hidden sm:flex items-center gap-2.5 px-1 text-xs text-gray-400">
         <div className="w-9 flex-shrink-0" />
         <div className="flex-1">วิชา</div>
         <div className="w-[90px] text-center flex-shrink-0">คะแนนของคุณ</div>
@@ -224,7 +224,7 @@ export function WeightedInputs({
           <div>
             <p className="text-sm font-semibold text-gray-700">คะแนนรวมสัดส่วน</p>
             {!allFilled && (
-              <p className="text-[11px] text-gray-400 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5">
                 กรอกแล้ว {filled}/{subjects.length} วิชา
               </p>
             )}

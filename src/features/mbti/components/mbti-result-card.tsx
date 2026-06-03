@@ -53,7 +53,7 @@ function DimBar({ leftLabel, rightLabel, leftScore, rightScore, leftColor, right
           style={{ width: `${leftPct}%` }}
         />
       </div>
-      <div className="flex items-center justify-between text-[11px]">
+      <div className="flex items-center justify-between text-xs">
         <span className={cn("font-semibold", dominantLeft ? leftColor.replace("bg-", "text-") : "text-gray-300")}>
           {leftLabel} {leftPct}%
         </span>
@@ -115,7 +115,7 @@ export function MBTIResultCard({ result, onRestart }: MBTIResultCardProps) {
               key={fac.field}
               className="flex items-start gap-3 rounded-xl bg-white/80 px-4 py-3"
             >
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-[11px] font-bold text-green-700">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-xs font-bold text-green-700">
                 {i + 1}
               </span>
               <div>

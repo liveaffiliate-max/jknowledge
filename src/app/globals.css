@@ -124,8 +124,26 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-optical-sizing: auto;
+    font-kerning: normal;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   html {
     @apply font-sans;
+  }
+  /* Prevent heading overflow on narrow viewports */
+  h1, h2, h3 {
+    text-wrap: balance;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  /* Prevent long Thai text from overflowing inline */
+  p, li, td, th {
+    overflow-wrap: break-word;
+  }
+  /* Tabular numbers for all score/data displays */
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }

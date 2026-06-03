@@ -73,7 +73,7 @@ export function ScoreTrendChart({ scores, userScore }: ScoreTrendChartProps) {
         แนวโน้มคะแนน 5 ปี
       </div>
       <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="year"

@@ -334,7 +334,7 @@ export function MBTIQuiz() {
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <div>
             <p className="text-xs font-semibold text-amber-800">เลือก &ldquo;กลาง ๆ&rdquo; บ่อยเกินไปนะ</p>
-            <p className="mt-0.5 text-[11px] text-amber-600">ลองเลือกข้างที่ตรงกับตัวคุณมากกว่า เพื่อผลที่แม่นยำขึ้น</p>
+            <p className="mt-0.5 text-xs text-amber-600">ลองเลือกข้างที่ตรงกับตัวคุณมากกว่า เพื่อผลที่แม่นยำขึ้น</p>
           </div>
         </div>
       )}
@@ -353,7 +353,7 @@ export function MBTIQuiz() {
         <div className="px-6 pt-5 pb-4">
           <div className="mb-2 flex items-center gap-1.5">
             <span className={cn("inline-block h-1.5 w-1.5 rounded-full", meta.barColor)} />
-            <span className="text-[11px] font-medium text-gray-400">
+            <span className="text-xs font-medium text-gray-400">
               ข้อที่ {answeredCount + 1} · ทำความเข้าใจ{meta.label}ของคุณ
             </span>
           </div>
@@ -437,7 +437,7 @@ export function MBTIQuiz() {
           </button>
 
           {/* Scale hint */}
-          <div className="flex justify-between px-1 text-[10px] text-gray-400">
+          <div className="flex justify-between px-1 text-xs text-gray-400">
             <span>← ตัวเลือกแรก</span>
             <span>ตัวเลือกที่สอง →</span>
           </div>

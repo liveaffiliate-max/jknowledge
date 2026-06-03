@@ -13,12 +13,12 @@ export function ScoreTable({ scores }: ScoreTableProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-100">
-            <th className="px-4 py-3 text-left font-semibold text-gray-600 text-xs">ปี</th>
-            <th className="px-4 py-3 text-right font-semibold text-gray-600 text-xs">ต่ำสุด</th>
-            <th className="px-4 py-3 text-right font-semibold text-gray-600 text-xs">เฉลี่ย</th>
-            <th className="px-4 py-3 text-right font-semibold text-gray-600 text-xs">สูงสุด</th>
-            <th className="px-4 py-3 text-right font-semibold text-gray-600 text-xs">ที่นั่ง</th>
-            <th className="px-4 py-3 text-right font-semibold text-gray-600 text-xs">เทียบปีก่อน</th>
+            <th className="px-3 py-3 text-left font-semibold text-gray-600 text-xs">ปี</th>
+            <th className="px-3 py-3 text-right font-semibold text-gray-600 text-xs">ต่ำสุด</th>
+            <th className="px-3 py-3 text-right font-semibold text-gray-600 text-xs">เฉลี่ย</th>
+            <th className="hidden sm:table-cell px-3 py-3 text-right font-semibold text-gray-600 text-xs">สูงสุด</th>
+            <th className="hidden sm:table-cell px-3 py-3 text-right font-semibold text-gray-600 text-xs">ที่นั่ง</th>
+            <th className="px-3 py-3 text-right font-semibold text-gray-600 text-xs">เทียบปีก่อน</th>
           </tr>
         </thead>
         <tbody>
@@ -34,33 +34,33 @@ export function ScoreTable({ scores }: ScoreTableProps) {
                   isLatest ? "bg-green-50/60" : "hover:bg-gray-50/80"
                 )}
               >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">
+                <td className="px-3 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-gray-900 text-xs">
                       TCAS{s.year - 2500}
                     </span>
                     {isLatest && (
-                      <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-semibold text-green-700">
+                      <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-semibold text-green-700">
                         ล่าสุด
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="font-bold text-red-600">{s.minScore.toFixed(2)}</span>
+                <td className="px-3 py-3 text-right">
+                  <span className="font-bold text-red-600 text-sm">{s.minScore.toFixed(2)}</span>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="font-medium text-amber-600">{s.avgScore.toFixed(2)}</span>
+                <td className="px-3 py-3 text-right">
+                  <span className="font-medium text-amber-600 text-sm">{s.avgScore.toFixed(2)}</span>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="font-medium text-blue-600">
+                <td className="hidden sm:table-cell px-3 py-3 text-right">
+                  <span className="font-medium text-blue-600 text-sm">
                     {s.maxScore !== undefined ? s.maxScore.toFixed(2) : "—"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="text-gray-600">{s.seats ?? "—"}</span>
+                <td className="hidden sm:table-cell px-3 py-3 text-right">
+                  <span className="text-gray-600 text-sm">{s.seats ?? "—"}</span>
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-3 py-3 text-right">
                   {delta === null ? (
                     <span className="text-gray-300">—</span>
                   ) : (

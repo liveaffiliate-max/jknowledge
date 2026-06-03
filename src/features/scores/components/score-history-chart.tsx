@@ -74,7 +74,7 @@ export function ScoreHistoryChart({ scores }: ScoreHistoryChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
         <XAxis
           dataKey="year"

@@ -48,7 +48,7 @@ export function ResultCard({ result }: ResultCardProps) {
             {chanceLabel(chance)}
           </span>
         </div>
-        <CardTitle className="mt-1 text-gray-900 text-base leading-snug">
+        <CardTitle className="mt-1 text-gray-900 text-base leading-snug break-words">
           {faculty.university.shortName} · {faculty.name}
         </CardTitle>
         <p className="text-xs text-gray-500">{faculty.program}</p>
@@ -58,16 +58,16 @@ export function ResultCard({ result }: ResultCardProps) {
         {/* ── Score summary row ── */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className={cn("rounded-xl p-3", color.bg)}>
-            <p className="text-[10px] text-gray-500 mb-0.5">คะแนนคุณ</p>
-            <p className={cn("text-2xl font-bold", color.text)}>{userScore.toFixed(1)}</p>
+            <p className="text-xs text-gray-500 mb-0.5">คะแนนคุณ</p>
+            <p className={cn("text-2xl font-bold tabular-nums", color.text)}>{userScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-[10px] text-gray-500 mb-0.5">ต่ำสุด</p>
-            <p className="text-2xl font-bold text-gray-700">{latestMinScore.toFixed(1)}</p>
+            <p className="text-xs text-gray-500 mb-0.5">ต่ำสุด</p>
+            <p className="text-2xl font-bold tabular-nums text-gray-700">{latestMinScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-[10px] text-gray-500 mb-0.5">เฉลี่ย</p>
-            <p className="text-2xl font-bold text-gray-700">{latestAvgScore.toFixed(1)}</p>
+            <p className="text-xs text-gray-500 mb-0.5">เฉลี่ย</p>
+            <p className="text-2xl font-bold tabular-nums text-gray-700">{latestAvgScore.toFixed(1)}</p>
           </div>
         </div>
 
