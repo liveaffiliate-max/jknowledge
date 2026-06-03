@@ -34,14 +34,14 @@ export function ScorePositionBar({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
         <MapPin className="h-4 w-4" />
         ตำแหน่งคะแนนของคุณ
       </div>
 
-      {/* Bar — px-1 gives label a small buffer before hitting card edge */}
-      <div className="px-1">
+      {/* Bar — pt-5/pb-6 give room for -top-5 labels above and -bottom-5 user score label below */}
+      <div className="px-1 pt-5 pb-6">
       <div className="relative h-6 w-full rounded-full bg-gray-100 overflow-visible">
         {/* Zone: low (0 → minScore) */}
         <div
@@ -108,7 +108,7 @@ export function ScorePositionBar({
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 text-xs text-gray-500">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-full bg-red-300" />
           โอกาสน้อย

@@ -18,6 +18,7 @@ import {
 
 interface ResultCardProps {
   result: AdmissionResult
+  onReset?: () => void
 }
 
 const trendConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
@@ -32,7 +33,7 @@ const chanceIconConfig: Record<AdmissionResult["chance"], { icon: LucideIcon; co
   low: { icon: XCircle, color: "text-red-500" },
 }
 
-export function ResultCard({ result }: ResultCardProps) {
+export function ResultCard({ result, onReset }: ResultCardProps) {
   const { faculty, userScore, chance, gap, latestMinScore, latestAvgScore, trend } = result
   const color = chanceColor(chance)
   const trendInfo = trendConfig[trend]
@@ -58,15 +59,15 @@ export function ResultCard({ result }: ResultCardProps) {
         {/* ── Score summary row ── */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className={cn("rounded-xl p-3", color.bg)}>
-            <p className="text-[10px] text-gray-500 mb-0.5">คะแนนคุณ</p>
+            <p className="text-xs text-gray-500 mb-0.5">คะแนนคุณ</p>
             <p className={cn("text-lg font-bold tabular-nums sm:text-2xl", color.text)}>{userScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-[10px] text-gray-500 mb-0.5">ต่ำสุด</p>
+            <p className="text-xs text-gray-500 mb-0.5">ต่ำสุด</p>
             <p className="text-lg font-bold tabular-nums sm:text-2xl text-gray-700">{latestMinScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-[10px] text-gray-500 mb-0.5">เฉลี่ย</p>
+            <p className="text-xs text-gray-500 mb-0.5">เฉลี่ย</p>
             <p className="text-lg font-bold tabular-nums sm:text-2xl text-gray-700">{latestAvgScore.toFixed(1)}</p>
           </div>
         </div>
@@ -112,6 +113,17 @@ export function ResultCard({ result }: ResultCardProps) {
           <AlertTriangle className="h-3 w-3 flex-shrink-0" />
           ผลนี้เป็นการประมาณการจากข้อมูลย้อนหลัง ไม่รับประกันการรับเข้า
         </p>
+
+        {/* ── Compare CTA ── */}
+        {onReset && (
+          <button
+            type="button"
+            onClick={onReset}
+            className="w-full rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:border-green-300 hover:bg-green-50 hover:text-green-700"
+          >
+            ลองวิเคราะห์คณะอื่น →
+          </button>
+        )}
       </CardContent>
     </Card>
   )

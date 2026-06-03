@@ -48,10 +48,15 @@ export const SUBJECT_LABELS: Record<string, string> = {
 export type SubjectGroup = "TGAT" | "TPAT" | "A-Level"
 
 export interface SubjectWeight {
-  code:   string
-  label:  string
-  weight: number
-  group:  SubjectGroup
+  code:    string
+  label:   string
+  weight:  number
+  group:   SubjectGroup
+  /** BestOf = กรณี cal_type: ระบบเลือกคะแนนสูงสุดจากรายวิชาเหล่านี้ */
+  bestOf?: {
+    codes:  string[]
+    labels: string[]
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -66,29 +71,81 @@ export function getSubjectLabel(code: string): string {
   return SUBJECT_LABELS[code] ?? code
 }
 
-/** แปลง weights JSON → SubjectWeight[] เรียงตาม TGAT → TPAT → A-Level */
-export function weightsToSubjects(weights: Record<string, number>): SubjectWeight[] {
+/**
+ * แปลง weights JSON → SubjectWeight[]
+ *
+ * รองรับ 2 formats จาก mytcas API:
+ *   1. Regular:  { "tgat3": 20, "a_lv_82": 14, ... }
+ *   2. BestOf:   { ...regular, "cal_type": "1",
+ *                  "cal_score_sum": 40,
+ *                  "cal_subject_name": "a_lv_64 a_lv_65 a_lv_66" }
+ *      → เลือกคะแนนสูงสุดจาก cal_subject_name มาคิดเป็น cal_score_sum %
+ */
+export function weightsToSubjects(weights: Record<string, unknown>): SubjectWeight[] {
+  const result: SubjectWeight[] = []
   const groupOrder: Record<SubjectGroup, number> = { TGAT: 0, TPAT: 1, "A-Level": 2 }
-  return Object.entries(weights)
-    .map(([code, weight]) => ({
+
+  // ── Parse BestOf group (cal_* keys) ────────────────────────────────────────
+  const calSum      = weights["cal_score_sum"]
+  const calSubjects = weights["cal_subject_name"]
+  const hasCal      = calSum !== undefined && calSubjects !== undefined
+
+  let bestOfCodes: string[] = []
+  if (hasCal && typeof calSubjects === "string") {
+    // separator: "|" หรือ space
+    bestOfCodes = calSubjects.split(/[|\s]+/).filter(Boolean)
+  }
+
+  const skipKeys = new Set(["cal_type", "cal_score_sum", "cal_subject_name", ...bestOfCodes])
+
+  // ── Regular subjects ────────────────────────────────────────────────────────
+  for (const [code, weight] of Object.entries(weights)) {
+    if (skipKeys.has(code)) continue
+    if (typeof weight !== "number") continue
+    result.push({
       code,
       label: getSubjectLabel(code),
       weight,
       group: getSubjectGroup(code),
-    }))
-    .sort((a, b) => {
-      const diff = groupOrder[a.group] - groupOrder[b.group]
-      return diff !== 0 ? diff : a.code.localeCompare(b.code)
     })
+  }
+
+  // ── BestOf virtual subject ──────────────────────────────────────────────────
+  if (hasCal && typeof calSum === "number" && bestOfCodes.length > 0) {
+    const shortNames = bestOfCodes.map((c) =>
+      getSubjectLabel(c).replace(/^A-Level\s*/i, "")
+    )
+    result.push({
+      code:   "__bestof__",
+      label:  `เลือกดีที่สุด (${shortNames.join(" / ")})`,
+      weight: calSum,
+      group:  "A-Level",
+      bestOf: {
+        codes:  bestOfCodes,
+        labels: bestOfCodes.map((c) => getSubjectLabel(c)),
+      },
+    })
+  }
+
+  return result.sort((a, b) => {
+    const diff = groupOrder[a.group] - groupOrder[b.group]
+    return diff !== 0 ? diff : a.code.localeCompare(b.code)
+  })
 }
 
-/** คำนวณคะแนนรวมสัดส่วน (0–100) */
+/** คำนวณคะแนนรวมสัดส่วน (0–100)
+ *  BestOf subjects: ใช้คะแนนสูงสุดจาก choices */
 export function calculateWeightedScore(
   subjects: SubjectWeight[],
   scores: Record<string, string>
 ): number {
   return subjects.reduce((total, s) => {
-    const val = parseFloat(scores[s.code] ?? "") || 0
+    let val: number
+    if (s.bestOf) {
+      val = Math.max(0, ...s.bestOf.codes.map((c) => parseFloat(scores[c] ?? "") || 0))
+    } else {
+      val = parseFloat(scores[s.code] ?? "") || 0
+    }
     return total + (val * s.weight) / 100
   }, 0)
 }

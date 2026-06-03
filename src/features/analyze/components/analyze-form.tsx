@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition, useMemo } from "react"
+import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ResultCard } from "./result-card"
@@ -112,6 +113,83 @@ function Spinner() {
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
       />
     </svg>
+  )
+}
+
+// ── Faculty Combobox ──────────────────────────────────────────────────────────
+
+function FacultyCombobox({
+  faculties,
+  value,
+  onChange,
+  disabled,
+  loading,
+  hasUniversity,
+}: {
+  faculties:    FacultyOption[]
+  value:        string
+  onChange:     (id: string) => void
+  disabled:     boolean
+  loading:      boolean
+  hasUniversity: boolean
+}) {
+  const labelMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const f of faculties) {
+      map[f.id] = [
+        f.name,
+        programLabel(f.program),
+        f.majorName,
+        projectLabel(f.detail, f.name),
+      ].filter(Boolean).join(" · ")
+    }
+    return map
+  }, [faculties])
+
+  const placeholder = !hasUniversity
+    ? "เลือกมหาวิทยาลัยก่อน"
+    : loading
+    ? "กำลังโหลด..."
+    : "พิมพ์เพื่อค้นหาคณะ / สาขา..."
+
+  return (
+    <ComboboxPrimitive.Root
+      value={value || null}
+      onValueChange={(id) => onChange(id ?? "")}
+      itemToStringLabel={(id) => (id ? (labelMap[id] ?? "") : "")}
+      disabled={disabled || loading}
+    >
+      <div className="w-full min-w-0">
+      <ComboboxPrimitive.Input
+        aria-label="เลือกคณะหรือสาขา"
+        placeholder={placeholder}
+        className={cn(
+          selectClass,
+          (disabled || loading) && "opacity-50 cursor-not-allowed"
+        )}
+      />
+      </div>
+      <ComboboxPrimitive.Portal>
+        <ComboboxPrimitive.Positioner sideOffset={4} className="z-50 w-(--anchor-width)">
+          <ComboboxPrimitive.Popup className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+            <ComboboxPrimitive.List>
+              {faculties.map((f) => (
+                <ComboboxPrimitive.Item
+                  key={f.id}
+                  value={f.id}
+                  className="cursor-pointer px-3 py-2 text-sm text-gray-800 outline-none data-[highlighted]:bg-green-50 data-[highlighted]:text-green-700"
+                >
+                  {labelMap[f.id]}
+                </ComboboxPrimitive.Item>
+              ))}
+            </ComboboxPrimitive.List>
+            <ComboboxPrimitive.Empty className="px-3 py-4 text-center text-sm text-gray-400">
+              ไม่พบคณะที่ค้นหา
+            </ComboboxPrimitive.Empty>
+          </ComboboxPrimitive.Popup>
+        </ComboboxPrimitive.Positioner>
+      </ComboboxPrimitive.Portal>
+    </ComboboxPrimitive.Root>
   )
 }
 
@@ -254,12 +332,23 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
       : fallbackScore !== "")
   const isLoading = isFetchingFaculties || isAnalyzing || isLoadingRequirement
 
+  // ── Reset (keep university, clear faculty + result) ──────────────
+  function handleReset() {
+    setFacultyId("")
+    setFaculties([])
+    setRequirement(null)
+    setSubjectScores({})
+    setFallbackScore("")
+    setResult(null)
+    setError("")
+  }
+
   // ── Derived step (1 | 2 | 3) ──────────────────────────────────────
   const currentStep = result ? 3 : facultyId ? 2 : 1
 
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="min-w-0">
       {/* Step progress bar */}
       <div className="mb-6 flex items-center gap-2">
         {(["เลือกคณะ", "กรอกคะแนน", "ผลวิเคราะห์"] as const).map((label, i) => {
@@ -298,43 +387,58 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
       <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:items-start">
 
         {/* ─────────────────────── Left column ─────────────────────── */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
 
           {/* ── Step 1: เลือกคณะ ── */}
           <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-3">
             <div className="flex items-center gap-2">
               <StepBadge n={1} done={!!facultyId} />
-              <h2 className="text-sm font-semibold text-gray-800">
+              <h2 className="min-w-0 flex-1 text-sm font-semibold text-gray-800 truncate">
                 เลือกมหาวิทยาลัยและคณะ
               </h2>
               {filterYear && (
-                <span className="ml-auto rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 border border-green-100">
+                <span className="flex-shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 border border-green-100">
                   TCAS{filterYear - 2500}
                 </span>
               )}
             </div>
 
             {/* University */}
-            <select
-              value={universityId}
-              onChange={(e) => handleUniversityChange(e.target.value)}
-              className={selectClass}
-            >
-              <option value="">— เลือกมหาวิทยาลัย —</option>
-              {universities.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="sr-only" htmlFor="university-select">เลือกมหาวิทยาลัย</label>
+              <select
+                id="university-select"
+                value={universityId}
+                onChange={(e) => handleUniversityChange(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">— เลือกมหาวิทยาลัย —</option>
+                {universities.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            {/* Faculty */}
+            {/* Faculty — mobile: combobox (searchable), desktop: native select */}
+            <div className="lg:hidden">
+              <FacultyCombobox
+                faculties={faculties}
+                value={facultyId}
+                onChange={handleFacultyChange}
+                disabled={!universityId}
+                loading={isFetchingFaculties}
+                hasUniversity={!!universityId}
+              />
+            </div>
             <select
               value={facultyId}
               onChange={(e) => handleFacultyChange(e.target.value)}
               disabled={!universityId || isFetchingFaculties}
               className={cn(
                 selectClass,
+                "hidden lg:block",
                 (!universityId || isFetchingFaculties) && "opacity-50"
               )}
             >
@@ -352,9 +456,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
                     programLabel(f.program),
                     f.majorName,
                     projectLabel(f.detail, f.name),
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  ].filter(Boolean).join(" · ")}
                 </option>
               ))}
             </select>
@@ -372,7 +474,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
                       : fallbackScore !== ""
                   }
                 />
-                <h2 className="text-sm font-semibold text-gray-800">
+                <h2 className="min-w-0 flex-1 text-sm font-semibold text-gray-800">
                   กรอกคะแนนของคุณ
                 </h2>
               </div>
@@ -463,7 +565,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
         {/* ─────────────────────── Right column ────────────────────── */}
         <div className="lg:sticky lg:top-6">
           {result ? (
-            <ResultCard result={result} />
+            <ResultCard result={result} onReset={handleReset} />
           ) : (
             <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center text-gray-400">
               <BarChart2 className="h-12 w-12 text-gray-300" />

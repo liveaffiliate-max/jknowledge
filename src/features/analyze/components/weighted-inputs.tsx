@@ -53,64 +53,114 @@ function SubjectRow({
 
   return (
     <div className="flex items-center gap-2 py-3 border-b border-gray-50 last:border-0">
-      {/* Short code badge */}
-      <div
-        className={cn(
-          "flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold leading-none",
-          cfg.bg,
-          cfg.text
-        )}
-      >
+      <div className={cn("flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold leading-none", cfg.bg, cfg.text)}>
         {getSubjectShortCode(subject.code)}
       </div>
-
-      {/* Subject name + weight badge */}
       <div className="flex-1 min-w-0 overflow-hidden">
-        <p className="text-sm font-medium text-gray-800 leading-tight truncate">
-          {subject.label}
-        </p>
-        <span
-          className={cn(
-            "mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-xs font-semibold",
-            cfg.bg,
-            cfg.text
-          )}
-        >
+        <p className="text-sm font-medium text-gray-800 leading-tight max-sm:truncate">{subject.label}</p>
+        <span className={cn("mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-xs font-semibold", cfg.bg, cfg.text)}>
           {subject.weight}%
         </span>
       </div>
-
-      {/* Score input */}
       <div className="flex items-center gap-1 flex-shrink-0">
         <input
-          type="number"
-          min={0}
-          max={100}
-          step={0.01}
-          placeholder="0"
-          value={score}
+          type="number" min={0} max={100} step={0.01} placeholder="0" value={score}
+          aria-label={subject.label}
           onChange={(e) => onChange(e.target.value)}
           className={cn(
             "w-[68px] rounded-lg border px-2.5 py-2 text-sm font-medium text-center",
             "outline-none transition-all duration-150",
             "focus:border-green-400 focus:ring-2 focus:ring-green-100",
-            hasValue
-              ? "border-gray-300 bg-white text-gray-900"
-              : "border-gray-200 bg-gray-50 text-gray-400"
+            hasValue ? "border-gray-300 bg-white text-gray-900" : "border-gray-200 bg-gray-50 text-gray-400"
           )}
         />
         <span className="text-xs text-gray-300">/100</span>
       </div>
-
-      {/* Contribution — hidden on mobile to save space */}
       <div className="hidden sm:block w-14 text-right flex-shrink-0">
         {contribution !== null ? (
-          <span className="text-sm font-bold text-green-600">
-            +{contribution.toFixed(2)}
-          </span>
+          <span className="text-sm font-bold text-green-600">+{contribution.toFixed(2)}</span>
         ) : (
           <span className="text-sm text-gray-200">—</span>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── BestOf row (เลือกดีที่สุด) ────────────────────────────────────────────────
+
+function BestOfRow({
+  subject,
+  scores,
+  onChange,
+}: {
+  subject: SubjectWeight
+  scores: Record<string, string>
+  onChange: (code: string, value: string) => void
+}) {
+  const cfg = GROUP_CONFIG[subject.group]
+  const choices = subject.bestOf!
+  const choiceVals = choices.codes.map((c) => parseFloat(scores[c] ?? "") || 0)
+  const bestVal    = Math.max(0, ...choiceVals)
+  const hasBest    = choiceVals.some((v) => v > 0)
+  const contribution = hasBest ? (bestVal * subject.weight) / 100 : null
+
+  return (
+    <div className="py-3 border-b border-gray-50 last:border-0">
+      {/* Group header */}
+      <div className="flex items-center gap-2 mb-2">
+        <div className={cn("flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold leading-none", cfg.bg, cfg.text)}>
+          CAL
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-800 leading-tight">{subject.label}</p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className={cn("inline-block rounded-full px-1.5 py-0.5 text-xs font-semibold", cfg.bg, cfg.text)}>
+              {subject.weight}%
+            </span>
+            <span className="text-xs text-gray-400">ระบบเลือกคะแนนสูงสุดให้อัตโนมัติ</span>
+          </div>
+        </div>
+        <div className="hidden sm:block w-14 text-right flex-shrink-0">
+          {contribution !== null ? (
+            <span className="text-sm font-bold text-green-600">+{contribution.toFixed(2)}</span>
+          ) : (
+            <span className="text-sm text-gray-200">—</span>
+          )}
+        </div>
+      </div>
+
+      {/* Choice inputs */}
+      <div className="ml-11 space-y-1.5">
+        {choices.codes.map((code, i) => {
+          const val    = scores[code] ?? ""
+          const numVal = parseFloat(val) || 0
+          const isBest = hasBest && numVal === bestVal && numVal > 0
+          return (
+            <div key={code} className="flex items-center gap-2">
+              <span className={cn("text-xs text-gray-500 flex-1 max-sm:truncate", isBest && "font-semibold text-green-700")}>
+                {choices.labels[i].replace(/^A-Level\s*/i, "")}
+                {isBest && <span className="ml-1.5 text-[10px] text-green-600 font-bold">★ ใช้คะแนนนี้</span>}
+              </span>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <input
+                  type="number" min={0} max={100} step={0.01} placeholder="0" value={val}
+                  aria-label={choices.labels[i]}
+                  onChange={(e) => onChange(code, e.target.value)}
+                  className={cn(
+                    "w-[68px] rounded-lg border px-2.5 py-1.5 text-sm font-medium text-center",
+                    "outline-none transition-all duration-150",
+                    "focus:border-green-400 focus:ring-2 focus:ring-green-100",
+                    isBest  ? "border-green-400 bg-green-50 text-green-800 font-semibold"
+                    : val   ? "border-gray-300 bg-white text-gray-900"
+                            : "border-gray-200 bg-gray-50 text-gray-400"
+                  )}
+                />
+                <span className="text-xs text-gray-300">/100</span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -145,14 +195,23 @@ function SubjectGroupSection({
 
       {/* Rows */}
       <div className="bg-white px-4">
-        {subjects.map((sub) => (
-          <SubjectRow
-            key={sub.code}
-            subject={sub}
-            score={scores[sub.code] ?? ""}
-            onChange={(v) => onChange(sub.code, v)}
-          />
-        ))}
+        {subjects.map((sub) =>
+          sub.bestOf ? (
+            <BestOfRow
+              key={sub.code}
+              subject={sub}
+              scores={scores}
+              onChange={onChange}
+            />
+          ) : (
+            <SubjectRow
+              key={sub.code}
+              subject={sub}
+              score={scores[sub.code] ?? ""}
+              onChange={(v) => onChange(sub.code, v)}
+            />
+          )
+        )}
       </div>
     </div>
   )
@@ -161,7 +220,7 @@ function SubjectGroupSection({
 // ── Main component ────────────────────────────────────────────────────────────
 
 interface WeightedInputsProps {
-  weights:     Record<string, number>
+  weights:     Record<string, unknown>
   scores:      Record<string, string>
   onChange:    (code: string, value: string) => void
   estMinScore?: number | null
@@ -175,9 +234,10 @@ export function WeightedInputs({
 }: WeightedInputsProps) {
   const subjects  = weightsToSubjects(weights)
   const total     = calculateWeightedScore(subjects, scores)
-  const filled    = subjects.filter(
-    (s) => scores[s.code] !== "" && !isNaN(parseFloat(scores[s.code] ?? ""))
-  ).length
+  const filled    = subjects.filter((s) => {
+    if (s.bestOf) return s.bestOf.codes.some(c => scores[c] !== "" && !isNaN(parseFloat(scores[c] ?? "")))
+    return scores[s.code] !== "" && !isNaN(parseFloat(scores[s.code] ?? ""))
+  }).length
   const allFilled = filled === subjects.length
 
   // group subjects by TGAT / TPAT / A-Level
@@ -189,9 +249,9 @@ export function WeightedInputs({
     {}
   )
 
-  // progress bar color
+  // progress bar color — neutral-to-green scale, no red (red = form error only, per design system)
   const barColor =
-    total >= 70 ? "bg-green-500" : total >= 50 ? "bg-yellow-400" : total > 0 ? "bg-red-400" : "bg-gray-200"
+    total >= 70 ? "bg-green-500" : total >= 50 ? "bg-green-400" : total >= 30 ? "bg-green-300" : total > 0 ? "bg-green-200" : "bg-gray-200"
 
   return (
     <div className="space-y-3">
