@@ -12,6 +12,12 @@ import {
 } from "@/server/actions"
 import { weightsToSubjects, calculateWeightedScore } from "@/lib/subjects"
 import { cn } from "@/lib/utils"
+import {
+  trackUniversitySelect,
+  trackFacultySelect,
+  trackAnalyzeSubmit,
+  trackAnalyzeResult,
+} from "@/lib/analytics"
 import type { University, AdmissionResult, RequirementData } from "@/types/tcas"
 import { Check, AlertTriangle, BarChart2 } from "lucide-react"
 
@@ -113,9 +119,10 @@ function Spinner() {
 
 export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
   // ── Selection state ──────────────────────────────────────────────
-  const [universityId, setUniversityId]   = useState("")
-  const [facultyId,    setFacultyId]      = useState("")
-  const [faculties,    setFaculties]      = useState<FacultyOption[]>([])
+  const [universityId,   setUniversityId]   = useState("")
+  const [universityName, setUniversityName] = useState("")
+  const [facultyId,      setFacultyId]      = useState("")
+  const [faculties,      setFaculties]      = useState<FacultyOption[]>([])
 
   // ── Requirement (weights) ────────────────────────────────────────
   const [requirement,         setRequirement]         = useState<RequirementData | null>(null)
@@ -153,6 +160,9 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
     setResult(null)
     setError("")
     if (!value) return
+    const uniName = universities.find((u) => u.id === value)?.name ?? value
+    setUniversityName(uniName)
+    trackUniversitySelect(uniName)
     startFetchFaculties(async () => {
       const data = await fetchFacultiesAction(value, filterYear)
       setFaculties(data)
@@ -167,6 +177,8 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
     setResult(null)
     setError("")
     if (!value) return
+    const fac = faculties.find((f) => f.id === value)
+    if (fac) trackFacultySelect(universityName, fac.name)
     setIsLoadingRequirement(true)
     try {
       const data = await getFacultyRequirementAction(value)
@@ -207,6 +219,14 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
       return
     }
 
+    const fac = faculties.find((f) => f.id === facultyId)
+    trackAnalyzeSubmit({
+      universityName,
+      facultyName: fac?.name ?? facultyId,
+      hasWeights:  hasWeights,
+      userScore:   score,
+    })
+
     startAnalyze(async () => {
       const analyzed = await analyzeAction(facultyId, score)
       if (!analyzed) {
@@ -214,6 +234,13 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
         return
       }
       setResult(analyzed)
+      trackAnalyzeResult({
+        universityName,
+        facultyName: analyzed.faculty.name,
+        chance:      analyzed.chance,
+        gap:         analyzed.gap,
+        userScore:   analyzed.userScore,
+      })
     })
   }
 

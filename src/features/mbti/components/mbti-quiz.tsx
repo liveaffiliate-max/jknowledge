@@ -20,6 +20,7 @@ import {
 import { MBTIResultCard } from "./mbti-result-card"
 import { MBTIReveal } from "./mbti-reveal"
 import { saveQuizResult } from "../actions/save-result"
+import { trackMBTIStart, trackMBTIComplete, trackMBTIRestart } from "@/lib/analytics"
 import type { MBTIAnswer, MBTIDimension, MBTIQuestion, MBTIResult } from "@/types/mbti"
 
 // ── Scale config ──────────────────────────────────────────────────────────────
@@ -139,6 +140,11 @@ export function MBTIQuiz() {
 
       // Fire-and-forget save — don't block the reveal animation
       const durationMs = Date.now() - quizStartTimeRef.current
+      trackMBTIComplete({
+        type:              mbtiResult.type,
+        durationSec:       Math.round(durationMs / 1000),
+        questionsAnswered: newAnswers.length,
+      })
       saveQuizResult({ result: mbtiResult, answers: newAnswers, durationMs })
         .then((id) => {
           try { localStorage.setItem("mbti_result_id", id) } catch { /* storage blocked */ }
@@ -192,6 +198,7 @@ export function MBTIQuiz() {
   }
 
   function handleRestart() {
+    trackMBTIRestart()
     setPool(shuffleArray([...mbtiQuestions]))
     setAnswered([])
     setProgress(initialProgress())
@@ -241,7 +248,7 @@ export function MBTIQuiz() {
             ))}
           </div>
           <button
-            onClick={() => setStarted(true)}
+            onClick={() => { setStarted(true); trackMBTIStart() }}
             className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-green-600 text-sm font-semibold text-white shadow-sm hover:bg-green-700 motion-safe:transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
           >
             เริ่มทำแบบทดสอบ

@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { FIELD_COLORS, FIELD_LABELS } from "../lib/field-labels"
+import { trackFacultyClick } from "@/lib/analytics"
 import type { FacultyPreview } from "@/types/tcas"
 import { Search, ChevronRight } from "lucide-react"
 
@@ -94,6 +95,7 @@ function FacultyRow({
   return (
     <Link
       href={`/scores/${universitySlug}/${f.id}`}
+      onClick={() => trackFacultyClick({ universitySlug, facultyName: f.name, facultyId: f.id })}
       className="group flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50 transition-colors"
     >
       {/* Left: name + field badge */}
