@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { getMBTIProfile } from "@/data/mbti-types"
 import { Sparkles } from "lucide-react"
 import type { MBTIType } from "@/types/mbti"
 
@@ -35,6 +36,7 @@ interface MBTIRevealProps {
  */
 export function MBTIReveal({ type, onDone }: MBTIRevealProps) {
   const letters = type.split("")
+  const profile = getMBTIProfile(type)
   const [revealed, setRevealed] = useState(0)   // count of letters shown so far
   const [merged, setMerged]     = useState(false)
 
@@ -103,10 +105,22 @@ export function MBTIReveal({ type, onDone }: MBTIRevealProps) {
       </div>
 
       {merged && (
-        <p className="mt-6 animate-pulse text-sm font-semibold text-gray-500">
-          คุณคือ…
-        </p>
+        <div className="mt-6 text-center animate-in fade-in duration-500">
+          <p className="animate-pulse text-sm font-semibold text-gray-500 mb-1">คุณคือ…</p>
+          {profile && (
+            <p className="text-lg font-bold text-gray-800">"{profile.nickname}"</p>
+          )}
+        </div>
       )}
+
+      {/* Skip button */}
+      <button
+        type="button"
+        onClick={() => onDoneRef.current()}
+        className="mt-10 text-xs text-gray-300 hover:text-gray-500 transition-colors"
+      >
+        ข้ามไปดูผล →
+      </button>
     </div>
   )
 }

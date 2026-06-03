@@ -30,6 +30,80 @@ function makeNewSlug(program: string, majorName: string | null, detail: string |
 }
 
 async function main() {
+  // ── Phase 0: Merge programCode-based duplicates (prefer TCAS69 row) ─────────
+  console.log("═══════════════════════════════════════════════════")
+  console.log("Phase 0 — Merge same-programCode duplicates (keep TCAS69 name)")
+  console.log("═══════════════════════════════════════════════════\n")
+
+  const allFaculties = await prisma.faculty.findMany({
+    include: {
+      scores: { select: { id: true, year: true, round: true } },
+      requirement: { select: { id: true } },
+    },
+  })
+
+  // Group by (universityId, programCode, normMajor) — same as check-db-state
+  const codeGroups = new Map<string, typeof allFaculties>()
+  for (const f of allFaculties) {
+    if (!f.programCode) continue
+    const { normalizeDetail: nd } = await import("../src/lib/normalize-faculty")
+    const normMajor = f.majorName?.trim().toLowerCase() ?? ""
+    const key = `${f.universityId}|${f.programCode}|${normMajor}`
+    if (!codeGroups.has(key)) codeGroups.set(key, [])
+    codeGroups.get(key)!.push(f)
+  }
+
+  const codeDupGroups = [...codeGroups.values()].filter(g => g.length > 1)
+  console.log(`Duplicate groups (same programCode): ${codeDupGroups.length}`)
+
+  let p0Removed = 0, p0ScoresMoved = 0
+
+  for (const group of codeDupGroups) {
+    // Canonical = row with TCAS69 score; ties → most scores; ties → earliest
+    const sorted = [...group].sort((a, b) => {
+      const aHas69 = a.scores.some(s => s.year === 2569) ? 1 : 0
+      const bHas69 = b.scores.some(s => s.year === 2569) ? 1 : 0
+      if (bHas69 !== aHas69) return bHas69 - aHas69
+      return b.scores.length - a.scores.length
+    })
+    const canonical  = sorted[0]
+    const duplicates = sorted.slice(1)
+
+    console.log(`  [code=${canonical.programCode}] keep="${canonical.program.slice(0,40)}" (${canonical.scores.length} scores)`)
+    for (const dup of duplicates) {
+      console.log(`    ← merge: "${dup.program.slice(0,40)}" (${dup.scores.length} scores)`)
+    }
+
+    const canonicalYears = new Set(canonical.scores.map(s => `${s.year}:${s.round}`))
+
+    for (const dup of duplicates) {
+      for (const score of dup.scores) {
+        const key = `${score.year}:${score.round}`
+        if (!canonicalYears.has(key)) {
+          await prisma.tcasScore.update({ where: { id: score.id }, data: { facultyId: canonical.id } })
+          canonicalYears.add(key)
+          p0ScoresMoved++
+        } else {
+          await prisma.tcasScore.delete({ where: { id: score.id } })
+        }
+      }
+
+      if (!canonical.requirement && dup.requirement) {
+        await prisma.facultyRequirement.update({
+          where: { id: dup.requirement.id },
+          data: { facultyId: canonical.id },
+        })
+        ;(canonical as typeof canonical & { requirement: unknown }).requirement = dup.requirement
+      }
+
+      await prisma.predictionHistory.updateMany({ where: { facultyId: dup.id }, data: { facultyId: canonical.id } })
+      const deleted = await prisma.faculty.deleteMany({ where: { id: dup.id } })
+      if (deleted.count > 0) p0Removed++
+    }
+  }
+
+  console.log(`\n✅ Phase 0 done — removed ${p0Removed} duplicates, moved ${p0ScoresMoved} scores\n`)
+
   // ── Phase 1: Merge duplicates ───────────────────────────────────────────────
   console.log("═══════════════════════════════════════════════════")
   console.log("Phase 1 — Merge duplicate Faculty records")

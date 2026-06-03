@@ -343,6 +343,87 @@ errors                     : 0
 
 ---
 
+## 2026-05-31 — Phase 3: เพิ่ม programCode บน Faculty + ปรับ Import Identity Logic
+
+### สิ่งที่ทำ
+- เพิ่ม `programCode String?` และ `@@index([programCode])` ใน Faculty model
+- รัน `prisma db push` → sync Supabase สำเร็จ (ไม่มี data loss เพราะ nullable)
+- ปรับ `scripts/import-tcas.ts` ให้ใช้ programCode เป็น identity key (แทน slug) สำหรับ Faculty lookup
+- เพิ่ม in-memory Faculty cache (`preloadFacultyIndex()`) เพื่อกัน per-row DB query → ป้องกัน connection timeout
+
+### Schema changes
+- `Faculty`: เพิ่ม `programCode String?`
+- `Faculty`: เพิ่ม `@@index([programCode])`
+- ไม่มี migration file (ใช้ `prisma db push`)
+
+### หมายเหตุ
+- slug ยังคงอยู่เป็น display/fallback key (legacy compatibility)
+- programCode คือ "รหัสหลักสูตร" จาก ทปอ. — stable ทุกปีสำหรับ regular universities
+
+---
+
+## 2026-05-31 — Phase 4: Full DB Clean-slate Re-import
+
+### สิ่งที่ทำ
+1. Backup FacultyRequirement 6,612 records → `src/data/faculty-requirements-backup.json`
+2. Truncate ด้วย cascading delete: TcasScore → FacultyRequirement → PredictionHistory → Faculty (ใช้ `deleteMany`)
+3. Re-import ทั้ง 5 ปี (TCAS64–68) ด้วย import script ที่ใช้ programCode-based identity
+4. รัน `dedupe-faculties.ts` → ยืนยัน 0 duplicates
+5. Restore FacultyRequirement:
+   - Match ด้วย programCode (priority)
+   - Fallback: (facultyName, normProgram, normMajor)
+   - ผล: 5,338 restored, 1,274 not found (faculty ถูก merge แล้ว)
+
+### DB State หลัง Phase 4
+| Table | Records |
+|-------|---------|
+| Faculty | 4,564 |
+| TcasScore | 14,099 |
+| FacultyRequirement | 5,338 |
+
+### หมายเหตุ
+- FacultyRequirement 1,274 records ที่ restore ไม่ได้ = Faculty เดิมถูก merge เข้า canonical row แล้ว
+- ต้องรัน `import-weights.ts` ใหม่เพื่อสร้าง FacultyRequirement ให้ครบ
+
+---
+
+## 2026-05-31 — Phase 5: COTMES Fix + Final Re-import
+
+### ปัญหาที่ค้นพบ
+COTMES reassign programCode ให้มหาวิทยาลัยสมาชิกต่างกันทุกปี:
+- TCAS65: `50310123` = ทันตแพทย์ มหิดล
+- TCAS66: `50310123` = ทันตแพทย์ จุฬา
+→ programCode-based lookup จะผสม Faculty ข้ามมหาวิทยาลัยโดยผิดพลาด
+
+### สิ่งที่ทำ
+- Truncate DB อีกรอบ (4,681 Faculty, 14,072 TcasScore deleted)
+- แก้ `import-tcas.ts`:
+  - `isCOTMES()`: detect ด้วย `universityName.includes("กลุ่มสถาบัน")`
+  - COTMES branch: ใช้ `facultyName`-based cache key แทน programCode (faculty name มีชื่อมหาวิทยาลัยอยู่ใน string)
+  - Regular uni branch: ใช้ programCode-based key ตามเดิม
+- Re-import ทั้ง 5 ปีด้วย logic ใหม่
+
+### DB State Final (Phase 5)
+| Table | Records |
+|-------|---------|
+| Faculty | **4,683** |
+| TcasScore | **14,099** |
+| FacultyRequirement | **5,338** |
+| Duplicate Faculty groups | **0** |
+| Faculty ที่มี programCode | **100%** |
+
+### Verification
+- ทันตแพทย์ จุฬา (COTMES): 1 row, years=[2564,2565,2566,2567,2568] ✅
+- วิศวกรรมคอมพิวเตอร์ จุฬา (regular): 1 row, years=[2564,2565,2566,2567,2568] ✅
+- Duplicate groups (programCode-based): 0 ✅
+
+### หมายเหตุ
+- COTMES identity = `(universityId, facultyName, normMajor)` — ไม่ใช้ programCode
+- Regular uni identity = `(universityId, programCode, normMajor)` — stable ทุกปี
+- ลด Faculty rows จาก 7,688 → 4,683 (-39%)
+
+---
+
 ## 2026-05-29 — MBTIResult: เพิ่ม analytics fields
 
 ### สิ่งที่ทำ

@@ -4,7 +4,9 @@ import Link from "next/link"
 import Header from "@/components/layout/header"
 import { getMBTIProfileByType } from "@/server/mbti-queries"
 import { cn } from "@/lib/utils"
-import { Check, Brain, BarChart2, GraduationCap, Briefcase, AlertTriangle } from "lucide-react"
+import { MBTI_ROLE_META } from "@/types/mbti"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
+import { Check, X, Brain, BarChart2, GraduationCap, Briefcase, BookOpen, AlertTriangle, Share2 } from "lucide-react"
 
 interface Props {
   params: Promise<{ type: string }>
@@ -45,13 +47,12 @@ export default async function MBTITypePage({ params }: Props) {
         {/* Hero banner */}
         <div className="bg-white border-b border-gray-100">
           <div className="mx-auto max-w-2xl px-4 py-8">
-            <nav className="mb-4 flex items-center gap-1.5 text-xs text-gray-400">
-              <Link href="/mbti" className="hover:text-green-600 transition-colors">
-                แนะนำคณะ (MBTI)
-              </Link>
-              <span>/</span>
-              <span className="text-gray-600 font-medium">{profile.type}</span>
-            </nav>
+            <div className="mb-4">
+              <Breadcrumb items={[
+                { label: "แนะนำคณะ (MBTI)", href: "/mbti" },
+                { label: profile.type },
+              ]} />
+            </div>
 
             <div className="text-center">
               <profile.icon className={cn("mx-auto h-16 w-16", profile.color)} />
@@ -63,9 +64,21 @@ export default async function MBTITypePage({ params }: Props) {
                   "{profile.nickname}"
                 </p>
                 <p className="mt-2 text-sm text-gray-500">{profile.tagline}</p>
+                {/* Role badge */}
+                {(() => {
+                  const roleMeta = MBTI_ROLE_META[profile.role]
+                  return (
+                    <span className={cn(
+                      "mt-3 inline-block rounded-full border px-3 py-1 text-xs font-semibold",
+                      roleMeta.bg, roleMeta.color
+                    )}>
+                      {roleMeta.label}
+                    </span>
+                  )
+                })()}
               </div>
 
-              {/* Tags */}
+              {/* Strengths */}
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {profile.strengths.map((s) => (
                   <span
@@ -88,6 +101,33 @@ export default async function MBTITypePage({ params }: Props) {
               บุคลิกภาพ
             </div>
             <p className="text-sm text-gray-700 leading-relaxed">{profile.description}</p>
+          </div>
+
+          {/* Weaknesses */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-orange-600 mb-3">
+              <X className="h-3.5 w-3.5" />
+              จุดที่ควรพัฒนา
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {profile.weaknesses.map((w) => (
+                <span
+                  key={w}
+                  className="rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-700"
+                >
+                  {w}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Study style */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-3">
+              <BookOpen className="h-4 w-4" />
+              สไตล์การเรียนของคุณ
+            </div>
+            <p className="text-sm text-gray-700 leading-relaxed">{profile.studyStyle}</p>
           </div>
 
           {/* Dimension breakdown */}
@@ -176,6 +216,33 @@ export default async function MBTITypePage({ params }: Props) {
             <AlertTriangle className="h-3 w-3 flex-shrink-0" />
             ผลลัพธ์นี้เป็นเพียงการประมาณการ ไม่ใช่การวินิจฉัยทางจิตวิทยา
           </p>
+
+          {/* 16 types grid */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6">
+            <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-4">
+              <Brain className="h-4 w-4" />
+              บุคลิกภาพ MBTI ทั้ง 16 ประเภท
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {(["INTJ","INTP","ENTJ","ENTP","INFJ","INFP","ENFJ","ENFP","ISTJ","ISFJ","ESTJ","ESFJ","ISTP","ISFP","ESTP","ESFP"] as const).map((t) => {
+                const isCurrent = t === profile.type
+                return (
+                  <Link
+                    key={t}
+                    href={`/mbti/${t}`}
+                    className={cn(
+                      "rounded-xl py-2.5 text-center text-xs font-bold transition-all",
+                      isCurrent
+                        ? "bg-green-600 text-white shadow-sm scale-105"
+                        : "bg-gray-50 text-gray-500 hover:bg-green-50 hover:text-green-700"
+                    )}
+                  >
+                    {t}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
 
           {/* CTA */}
           <div className="rounded-2xl border border-green-100 bg-green-50 p-5 text-center">

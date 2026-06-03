@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils"
 import { Show, UserButton } from "@clerk/nextjs"
 
 const NAV_LINKS = [
-  { href: "/analyze", label: "วิเคราะห์คะแนน" },
-  { href: "/scores",  label: "คะแนนย้อนหลัง" },
-  { href: "/mbti",    label: "แนะนำคณะ (MBTI)" },
+  { href: "/analyze",   label: "วิเคราะห์คะแนน" },
+  { href: "/scores",    label: "คะแนนย้อนหลัง" },
+  { href: "/mbti",      label: "แนะนำคณะ (MBTI)" },
+  { href: "/dashboard", label: "Dashboard", signedInOnly: true },
 ]
 
 export default function Header() {
@@ -38,18 +39,32 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "transition-colors hover:text-green-600",
-                pathname.startsWith(href) && "text-green-600 font-semibold"
-              )}
-            >
-              {label}
-            </Link>
-          ))}
+          {NAV_LINKS.map(({ href, label, signedInOnly }) =>
+            signedInOnly ? (
+              <Show key={href} when="signed-in">
+                <Link
+                  href={href}
+                  className={cn(
+                    "transition-colors hover:text-green-600",
+                    pathname.startsWith(href) && "text-green-600 font-semibold"
+                  )}
+                >
+                  {label}
+                </Link>
+              </Show>
+            ) : (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "transition-colors hover:text-green-600",
+                  pathname.startsWith(href) && "text-green-600 font-semibold"
+                )}
+              >
+                {label}
+              </Link>
+            )
+          )}
         </nav>
 
         {/* Right side */}
@@ -136,6 +151,20 @@ export default function Header() {
 
           {/* Auth — mobile */}
           <div className="pt-3 border-t border-gray-100 space-y-2">
+            <Show when="signed-in">
+              <Link
+                href="/dashboard"
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  pathname.startsWith("/dashboard")
+                    ? "bg-green-50 text-green-700"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
+                )}
+              >
+                Dashboard
+              </Link>
+            </Show>
             <Show when="signed-out">
               <Link
                 href="/sign-in"

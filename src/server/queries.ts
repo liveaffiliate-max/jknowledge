@@ -223,3 +223,49 @@ export async function getFacultyWithScores(
     })),
   }
 }
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
+export type PredictionHistoryItem = {
+  id:           string
+  userScore:    number
+  chance:       "high" | "competitive" | "low"
+  gap:          number
+  createdAt:    Date
+  faculty: {
+    id:         string
+    name:       string
+    program:    string
+    majorName:  string | null
+    detail:     string | null
+    university: { name: string; slug: string; color: string }
+  }
+}
+
+export async function getDashboardHistory(clerkId: string): Promise<PredictionHistoryItem[]> {
+  const user = await prisma.user.findUnique({ where: { clerkId } })
+  if (!user) return []
+
+  const rows = await prisma.predictionHistory.findMany({
+    where:   { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    take:    20,
+    include: {
+      faculty: {
+        select: {
+          id: true, name: true, program: true, majorName: true, detail: true,
+          university: { select: { name: true, slug: true, color: true } },
+        },
+      },
+    },
+  })
+
+  return rows.map((r) => ({
+    id:        r.id,
+    userScore: r.userScore,
+    chance:    r.chance as "high" | "competitive" | "low",
+    gap:       r.gap,
+    createdAt: r.createdAt,
+    faculty:   r.faculty,
+  }))
+}

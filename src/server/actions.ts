@@ -1,7 +1,9 @@
 "use server"
 
+import { auth } from "@clerk/nextjs/server"
 import { getFacultiesByUniversityId, getFacultyRequirement, getFacultyWithScores } from "./queries"
 import { calculateAdmissionChance, calculateTrend } from "@/utils/analyze"
+import { prisma } from "@/lib/prisma"
 import type { AdmissionResult, Faculty, RequirementData } from "@/types/tcas"
 
 // ── Get faculties for a university (called when user picks university) ─────────
@@ -37,11 +39,31 @@ export async function analyzeAction(
   const sorted = [...faculty.scores].sort((a, b) => b.year - a.year)
   const latest = sorted[0]
 
+  const chance = calculateAdmissionChance(userScore, latest.minScore, latest.avgScore)
+  const gap    = userScore - latest.minScore
+
+  // ── Save PredictionHistory (ถ้า user ล็อกอินอยู่) ──────────────────────────
+  try {
+    const { userId: clerkId } = await auth()
+    if (clerkId) {
+      const user = await prisma.user.upsert({
+        where:  { clerkId },
+        update: {},
+        create: { clerkId },
+      })
+      await prisma.predictionHistory.create({
+        data: { userId: user.id, facultyId, userScore, chance, gap },
+      })
+    }
+  } catch {
+    // ไม่ block ผลลัพธ์ถ้า save ไม่ได้
+  }
+
   return {
     faculty,
     userScore,
-    chance: calculateAdmissionChance(userScore, latest.minScore, latest.avgScore),
-    gap: userScore - latest.minScore,
+    chance,
+    gap,
     latestMinScore: latest.minScore,
     latestAvgScore: latest.avgScore,
     trend: calculateTrend(faculty.scores),

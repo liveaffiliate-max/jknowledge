@@ -1,0 +1,32 @@
+﻿code,ชื่อวิชา,กลุ่ม,หมายเหตุ
+tgat,TGAT รวม,TGAT,คะแนนรวม TGAT ทั้ง 3 part
+tgat1,TGAT1 การสื่อสารภาษาอังกฤษ,TGAT,
+tgat2,TGAT2 การคิดอย่างมีเหตุผล,TGAT,
+tgat3,TGAT3 สมรรถนะการทำงาน,TGAT,
+tpat1,TPAT1 ความถนัดแพทย์,TPAT,
+tpat11,TPAT11 เชาว์ปัญญา,TPAT,sub-score ของ TPAT1
+tpat12,TPAT12 จริยธรรมทางการแพทย์,TPAT,sub-score ของ TPAT1
+tpat13,TPAT13 ทักษะการเชื่อมโยง,TPAT,sub-score ของ TPAT1
+tpat2,TPAT2 ความถนัดศิลปกรรมศาสตร์,TPAT,
+tpat21,TPAT21 ทัศนศิลป์,TPAT,sub-score ของ TPAT2
+tpat22,TPAT22 ดนตรี,TPAT,sub-score ของ TPAT2
+tpat23,TPAT23 นาฏศิลป์,TPAT,sub-score ของ TPAT2
+tpat3,TPAT3 ความถนัดวิทย์/เทคโนโลยี/วิศวะ,TPAT,
+tpat4,TPAT4 ความถนัดสถาปัตยกรรมศาสตร์,TPAT,
+tpat5,TPAT5 ความถนัดครุศาสตร์/ศึกษาศาสตร์,TPAT,
+a_lv_61,A-Level คณิตศาสตร์ประยุกต์ 1,A-Level,
+a_lv_62,A-Level คณิตศาสตร์ประยุกต์ 2,A-Level,
+a_lv_63,A-Level วิทยาศาสตร์ประยุกต์,A-Level,
+a_lv_64,A-Level ฟิสิกส์,A-Level,
+a_lv_65,A-Level เคมี,A-Level,
+a_lv_66,A-Level ชีววิทยา,A-Level,
+a_lv_70,A-Level สังคมศาสตร์,A-Level,
+a_lv_81,A-Level ภาษาไทย,A-Level,
+a_lv_82,A-Level ภาษาอังกฤษ,A-Level,
+a_lv_83,A-Level ภาษาฝรั่งเศส,A-Level,ภาษาต่างประเทศที่ 3 (เลือก 1 วิชา)
+a_lv_84,A-Level ภาษาเยอรมัน,A-Level,ภาษาต่างประเทศที่ 3 (เลือก 1 วิชา)
+a_lv_85,A-Level ภาษาญี่ปุ่น,A-Level,ภาษาต่างประเทศที่ 3 (เลือก 1 วิชา)
+a_lv_86,A-Level ภาษาเกาหลี,A-Level,ภาษาต่างประเทศที่ 3 (เลือก 1 วิชา)
+a_lv_87,A-Level ภาษาจีน,A-Level,ภาษาต่างประเทศที่ 3 (เลือก 1 วิชา)
+a_lv_88,A-Level ภาษาบาลี,A-Level,ภาษาต่างประเทศที่ 3 (เลือก 1 วิชา)
+a_lv_89,A-Level ภาษาสเปน,A-Level,ภาษาต่างประเทศที่ 3 (เลือก 1 วิชา)

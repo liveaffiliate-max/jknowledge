@@ -205,6 +205,30 @@ function normalize67(rows: CsvRow[]): NormalizedRow[] {
   })
 }
 
+function normalize69(rows: CsvRow[]): NormalizedRow[] {
+  // ⚠️ TCAS69: 2 new columns inserted (รหัสสาขา, รหัสโครงการ) before คณะ
+  // ⚠️ TCAS69: DS (Direct Score) = final round — use DS scores, fallback to main
+  return rows.map(r => {
+    const maxMain = num(r["คะแนนสูงสุด"])
+    const minMain = num(r["คะแนนต่ำสุด"])
+    const maxDS   = num(r["คะแนนสูงสุด DS"])
+    const minDS   = num(r["คะแนนต่ำสุด DS"])
+    return {
+      universityName: str(r["สถาบัน"]),
+      facultyName:    str(r["คณะ"]),
+      programName:    str(r["หลักสูตร"]),
+      majorName:      str(r["สาขา/วิชาเอก"]),
+      detail:         str(r["รายละเอียด"]),
+      programCode:    str(r["รหัสหลักสูตร"]),
+      seats:          num(r["รับ"]),
+      minScore:       minDS > 0 ? minDS : minMain,
+      maxScore:       maxDS > 0 ? maxDS : maxMain,
+      avgScore:       0,
+      year:           2569,
+    }
+  })
+}
+
 function normalize68(rows: CsvRow[]): NormalizedRow[] {
   // ⚠️ TCAS68: คะแนนสูงสุด comes BEFORE คะแนนต่ำสุด in both rounds
   return rows.map(r => {
@@ -282,14 +306,108 @@ async function upsertUniversity(name: string): Promise<string> {
   return created.id
 }
 
-// Cache: `${universityId}:${programCode}:${normMajor}` → facultyId  (Path A)
-//        `${universityId}:slug:${slug}`                 → facultyId  (Path B fallback)
+// ── In-memory lookup indexes (pre-loaded at startup) ─────────────────────────
+//
+// Path A  exact:  `${universityId}:${programCode}:${normMajor}` → facultyId
+//   Exact-code match. Safe for regular universities where the programCode is
+//   stable across all 5 TCAS years.
+//
+// Path A  cotmes: `${universityId}:fac:${facultyName}:${normMajor}` → facultyId
+//   Faculty-name match for consortium universities (กลุ่มสถาบันแพทยศาสตร์).
+//   COTMES assigns a NEW programCode to EACH member university EVERY year, so
+//   exact-code matching cannot merge cross-year rows.  Faculty name at COTMES
+//   always includes the actual university (e.g. "คณะทันตแพทยศาสตร์ จุฬาลงกรณ์")
+//   making it a reliable stable identity within the consortium.
+//
+//   NOTE: Suffix matching was removed — COTMES reuses the same code suffix for
+//   all member universities (e.g. "120101A" = ทันตแพทย์), causing false merges.
+//
+// Path B  slug:   `${universityId}:slug:${slug}` → facultyId
 const facCache = new Map<string, string>()
 
+/** True for consortium-style universities whose programCode changes every year. */
+function isCOTMES(universityName: string): boolean {
+  return universityName.includes("กลุ่มสถาบัน")
+}
+
+/** Populate facCache with all existing Faculty mappings. */
+async function preloadFacultyIndex(): Promise<void> {
+  const scores = await prisma.tcasScore.findMany({
+    where: { programCode: { not: null } },
+    select: {
+      programCode: true,
+      faculty: {
+        select: { id: true, universityId: true, name: true, majorName: true, slug: true,
+                  university: { select: { name: true } } },
+      },
+    },
+  })
+  for (const s of scores) {
+    if (!s.programCode) continue
+    const normMajor = normalizeMajor(s.faculty.majorName)
+    const uniId     = s.faculty.universityId
+    const fId       = s.faculty.id
+    const cotmes    = isCOTMES(s.faculty.university.name)
+
+    if (cotmes) {
+      // COTMES: facultyName-only key (programCode reassigned each year — never use for lookup)
+      facCache.set(`${uniId}:fac:${s.faculty.name}:${normMajor}`, fId)
+    } else {
+      // Regular uni: exact-code key (stable across years)
+      facCache.set(`${uniId}:${s.programCode}:${normMajor}`, fId)
+    }
+    // Slug key for both
+    facCache.set(`${uniId}:slug:${s.faculty.slug}`, fId)
+  }
+  console.log(`📋 Pre-loaded ${facCache.size} Faculty cache entries\n`)
+}
+
+interface CacheLookup {
+  facultyId:   string
+  needsUpdate: boolean  // false = exact match, no DB write needed for Faculty
+}
+
+/** Resolve facultyId from cache.
+ *
+ *  Regular universities  → exact programCode + major (stable codes, no update needed on hit)
+ *  COTMES consortium     → facultyName + major only  (codes reassigned annually; never use
+ *                          programCode for lookup — same code maps to different unis each year)
+ *
+ *  needsUpdate=false → exact hit, Faculty already has correct data, skip DB write.
+ *  needsUpdate=true  → found via fallback (major changed, or COTMES code rotated). */
+function lookupCache(
+  universityId:   string,
+  programCode:    string,
+  facultyName:    string,
+  normMajor:      string,
+  universityName: string,
+): CacheLookup | undefined {
+  if (isCOTMES(universityName)) {
+    // COTMES: facultyName-only lookup (skip programCode entirely)
+    const hit1 = facCache.get(`${universityId}:fac:${facultyName}:${normMajor}`)
+    if (hit1) return { facultyId: hit1, needsUpdate: false }
+
+    if (normMajor) {
+      const hit2 = facCache.get(`${universityId}:fac:${facultyName}:`)
+      if (hit2) return { facultyId: hit2, needsUpdate: true }  // null→"ภาษาไทย"
+    }
+  } else {
+    // Regular uni: exact programCode match
+    const hit1 = facCache.get(`${universityId}:${programCode}:${normMajor}`)
+    if (hit1) return { facultyId: hit1, needsUpdate: false }
+
+    if (normMajor) {
+      const hit2 = facCache.get(`${universityId}:${programCode}:`)
+      if (hit2) return { facultyId: hit2, needsUpdate: true }  // null→"ภาษาไทย"
+    }
+  }
+
+  return undefined
+}
+
 async function upsertFaculty(row: NormalizedRow, universityId: string): Promise<string> {
-  const field       = detectField(row.facultyName, row.programName) as never
-  const normMajor   = normalizeMajor(row.majorName)
-  const normDetail  = normalizeDetail(row.detail, row.facultyName)
+  const field      = detectField(row.facultyName, row.programName) as never
+  const normMajor  = normalizeMajor(row.majorName)
   const canonicalData = {
     name:      row.facultyName || row.programName,
     program:   row.programName,
@@ -298,43 +416,29 @@ async function upsertFaculty(row: NormalizedRow, universityId: string): Promise<
     field,
   }
 
-  // ── Path A: programCode lookup (stable identity, ~85% of cases) ─────────────
-  // Find an existing Faculty in this university that already has a TcasScore
-  // with the same programCode + normalizedMajor.  Handles program/detail string
-  // changes across TCAS years without creating duplicate Faculty rows.
+  // ── Path A: in-memory lookup ──────────────────────────────────────────────────
   if (row.programCode) {
-    const cacheKeyA = `${universityId}:${row.programCode}:${normMajor}`
-    if (facCache.has(cacheKeyA)) return facCache.get(cacheKeyA)!
-
-    const existingScore = await prisma.tcasScore.findFirst({
-      where: {
-        programCode: row.programCode,
-        faculty: { universityId },
-      },
-      select: {
-        facultyId: true,
-        faculty: { select: { majorName: true, programCode: true } },
-      },
-    })
-
-    if (existingScore) {
-      const existNormMajor = normalizeMajor(existingScore.faculty.majorName)
-      // Accept if normalizedMajor matches, OR if one side has no major
-      // (handles TCAS64 null → TCAS65+ "ภาษาไทย" for programs with no international track)
-      if (existNormMajor === normMajor || !existNormMajor || !normMajor) {
-        // Update canonical fields to the latest import's strings
+    const result = lookupCache(universityId, row.programCode, row.facultyName, normMajor, row.universityName)
+    if (result) {
+      const { facultyId, needsUpdate } = result
+      if (needsUpdate) {
         await prisma.faculty.update({
-          where: { id: existingScore.facultyId },
+          where: { id: facultyId },
           data: { ...canonicalData, programCode: row.programCode },
         })
-        facCache.set(cacheKeyA, existingScore.facultyId)
-        return existingScore.facultyId
       }
+      // Populate cache for fast subsequent hits
+      if (isCOTMES(row.universityName)) {
+        facCache.set(`${universityId}:fac:${row.facultyName}:${normMajor}`, facultyId)
+      } else {
+        facCache.set(`${universityId}:${row.programCode}:${normMajor}`, facultyId)
+      }
+      return facultyId
     }
   }
 
-  // ── Path B: slug-based upsert (fallback for COTMES / unstable codes) ─────────
-  const slug     = makeFacultySlug(row.universityName, row.facultyName, row.programName, row.majorName, row.detail)
+  // ── Path B: slug-based upsert (first insert) ─────────────────────────────────
+  const slug      = makeFacultySlug(row.universityName, row.facultyName, row.programName, row.majorName, row.detail)
   const cacheKeyB = `${universityId}:slug:${slug}`
   if (facCache.has(cacheKeyB)) return facCache.get(cacheKeyB)!
 
@@ -349,11 +453,14 @@ async function upsertFaculty(row: NormalizedRow, universityId: string): Promise<
     },
   })
 
-  // Cache under both Path B key AND Path A key (so next row with same code reuses it)
+  // Populate cache for this new Faculty
   facCache.set(cacheKeyB, faculty.id)
   if (row.programCode) {
-    const cacheKeyA = `${universityId}:${row.programCode}:${normMajor}`
-    facCache.set(cacheKeyA, faculty.id)
+    if (isCOTMES(row.universityName)) {
+      facCache.set(`${universityId}:fac:${row.facultyName}:${normMajor}`, faculty.id)
+    } else {
+      facCache.set(`${universityId}:${row.programCode}:${normMajor}`, faculty.id)
+    }
   }
   return faculty.id
 }
@@ -391,6 +498,7 @@ const FILES = [
   { path: join(DATA_DIR, "TCAS66_maxmin - maxmin66.csv"),                normalize: normalize66, year: 2566 },
   { path: join(DATA_DIR, "TCAS67_maxmin - Sheet2.csv"),                  normalize: normalize67, year: 2567 },
   { path: join(DATA_DIR, "T68-stat-r3_2-maxmin-24May25 - Sheet1.csv"),   normalize: normalize68, year: 2568 },
+  { path: join(DATA_DIR, "TCAS69-R3-MinMax-25May26 - Sheet1.csv"),       normalize: normalize69, year: 2569 },
 ]
 
 async function main() {
@@ -399,7 +507,11 @@ async function main() {
   // Pre-load existing universities
   const existingUnis = await prisma.university.findMany()
   for (const u of existingUnis) uniCache.set(u.name, u.id)
-  console.log(`📚 Pre-loaded ${existingUnis.length} universities\n`)
+  console.log(`📚 Pre-loaded ${existingUnis.length} universities`)
+
+  // Pre-load Faculty index (programCode + slug → facultyId) into memory
+  // so upsertFaculty never needs to query DB per row.
+  await preloadFacultyIndex()
 
   const grandTotal = { rows: 0, universities: new Set<string>(), faculties: 0, scores: 0 }
 

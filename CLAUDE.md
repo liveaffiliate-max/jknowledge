@@ -1,394 +1,243 @@
-@AGENTS.md
-# CLAUDE.md
+# Knowledge Base Structure
 
-## Git Rules
+This repository uses markdown files as a project knowledge base.
 
-**ห้าม** `git commit` หรือ `git push` ทุกกรณี เว้นแต่ผู้ใช้สั่งโดยตรงเท่านั้น
-
-- ❌ ห้าม commit โดยอัตโนมัติหลังแก้ code
-- ❌ ห้าม push โดยอัตโนมัติหลัง commit
-- ✅ ทำได้เฉพาะเมื่อผู้ใช้พิมพ์ "commit" หรือ "push" อย่างชัดเจน
+Before making product, UX, design, architecture, or database decisions, read the relevant documents.
 
 ---
 
-## Project Overview
+## Source of Truth (Highest Priority)
 
-This project is an AI-powered TCAS university admission analysis platform for Thai students.
+These files define the long-term direction of the project.
 
-Main goals:
-- Help students analyze TCAS scores
-- Predict admission chances
-- Compare historical cutoff scores
-- Recommend faculties/universities
-- Provide MBTI-based faculty recommendations
-- Build a student-focused education ecosystem
+### PRODUCT.md
 
-Target users:
-- Thai high school students
-- TCAS candidates
-- Students preparing for university admission
+Purpose:
 
----
+* Product vision
+* Target users
+* Product goals
+* Brand personality
+* Product principles
+* Success metrics
 
-# Product Vision
+Read when:
 
-Build the most student-friendly TCAS analysis platform in Thailand.
-
-Core principles:
-- Mobile-first
-- Fast
-- Easy to understand
-- Data-driven
-- Visually modern
-- Shareable on social media
-- AI-assisted guidance
+* Building new features
+* Making product decisions
+* Prioritizing functionality
 
 ---
 
-# Tech Stack
+### UX.md
 
-## Frontend
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
-- shadcn/ui
+Purpose:
 
-## Backend
-- Next.js Server Actions
-- API Routes
+* User psychology
+* User journeys
+* Interaction principles
+* Information hierarchy
+* Loading states
+* Empty states
+* Decision-making flows
 
-## Database
-- PostgreSQL
-- Prisma ORM
+Read when:
 
-## Authentication
-- Clerk or NextAuth
-
-## Charts
-- Recharts
-
-## Deployment
-- Vercel
+* Designing flows
+* Building forms
+* Creating onboarding
+* Designing analysis experiences
 
 ---
 
-# Coding Standards
+### DESIGN.md
 
-## General Rules
+Purpose:
 
-- Use TypeScript everywhere
-- Avoid using `any`
-- Prefer server components when possible
-- Use async/await
-- Keep components modular
-- Avoid duplicated logic
-- Keep functions small and reusable
+* Visual language
+* Colors
+* Typography
+* Components
+* Spacing
+* Elevation
+* Design constraints
 
----
+Read when:
 
-# Folder Structure
-
-Use scalable feature-based architecture.
-
-Example:
-
-src/
-├── app/
-├── components/
-├── features/
-├── lib/
-├── services/
-├── hooks/
-├── types/
-├── utils/
-├── server/
-├── prisma/
-└── styles/
+* Creating UI
+* Styling components
+* Building layouts
+* Designing charts
 
 ---
 
-# UI/UX Rules
+## Project Context
 
-## Design Style
+Located in:
 
-The UI should feel:
-- Modern
-- Clean
-- Friendly
-- Minimal
-- Student-focused
+context/
 
-## Primary Theme
-
-Brand color:
-- Green
-- White
-- Dark green accents
-
-## UX Priorities
-
-- Mobile-first
-- Large touch targets
-- Fast loading
-- Simple navigation
-- Easy readability
+These documents evolve frequently and contain implementation details.
 
 ---
 
-# Main Features
+### context/architecture.md
 
-## 1. TCAS Score Analysis
+Contains:
 
-Users can:
-- Input scores
-- Select university/faculty
-- Analyze admission probability
+* System architecture
+* Folder structure
+* Technical decisions
+* Application boundaries
 
-System should:
-- Compare against historical scores
-- Calculate score gaps
-- Show trends
-- Estimate competitiveness
+Read when:
 
----
-
-## 2. Historical Score Database
-
-Store:
-- University
-- Faculty
-- TCAS round
-- Minimum score
-- Average score
-- Maximum score
-- Number of seats
-- Year
-
-Must support:
-- 5+ years historical data
-- Trend analysis
-- Filtering
+* Refactoring
+* Designing backend/frontend structure
+* Creating new modules
 
 ---
 
-## 3. AI Admission Advisor
+### context/business-rules.md
 
-AI should:
-- Analyze score strength
-- Recommend safer choices
-- Suggest backup faculties
-- Explain competitiveness
+Contains:
 
-Avoid absolute statements like:
-- "Guaranteed admission"
+* TCAS rules
+* Admission logic
+* Score calculation rules
+* Prediction rules
 
-Prefer:
-- "High chance"
-- "Competitive range"
-- "Likely admission"
+Read when:
 
----
-
-## 4. MBTI Recommendation System
-
-Users can:
-- Take MBTI test
-- Receive faculty recommendations
-
-Recommendation logic should consider:
-- Personality
-- Interests
-- Career paths
-- Communication style
+* Implementing business logic
+* Working with score analysis
+* Building prediction systems
 
 ---
 
-# SEO Strategy
+### context/database.md
 
-Pages should be SEO optimized.
+Contains:
 
-Target keywords:
-- คะแนนต่ำสุด TCAS
-- คะแนนย้อนหลัง
-- คณะไหนดี
-- MBTI คณะ
-- TCAS calculator
+* Database history
+* Schema changes
+* Migration records
+* Data decisions
 
-Requirements:
-- Dynamic metadata
-- Structured data
-- Fast performance
-- Semantic HTML
+Read when:
 
----
+* Modifying Prisma schema
+* Database migrations
+* Data modeling
 
-# Performance Rules
-
-- Use lazy loading when appropriate
-- Optimize images
-- Use server rendering where possible
-- Avoid unnecessary client components
-- Minimize bundle size
+Must update after any database-related work.
 
 ---
 
-# Security Rules
+### context/planning.md
 
-- Validate all inputs
-- Never trust client-side data
-- Protect APIs
-- Sanitize user-generated content
-- Use rate limiting on public endpoints
+Contains:
 
----
+* Current plans
+* Upcoming work
+* Development priorities
 
-# AI Behavior Instructions
+Read when:
 
-When generating code:
-- Prefer production-ready implementations
-- Prioritize readability
-- Use clean architecture
-- Avoid overengineering
-- Add comments only when necessary
-
-When suggesting UI:
-- Use modern SaaS-style layouts
-- Prioritize mobile responsiveness
-- Keep interfaces simple
-
-When building features:
-- Think scalability first
-- Separate business logic from UI
-- Use reusable abstractions
+* Planning new work
+* Evaluating priorities
 
 ---
 
-# Database Logging Rule
+### context/progress.md
 
-**ทุกครั้งที่มีการทำงานที่เกี่ยวข้องกับ database ให้บันทึกลงในไฟล์:**
+Contains:
 
-```
-context/database.md
-```
+* Current project status
+* Completed work
+* Active work
 
-ครอบคลุม:
-- การเปลี่ยน schema (เพิ่ม/ลบ/แก้ model, field, index)
-- การรัน migration หรือ `prisma db push`
-- การ reset DB
-- การ import/export data
-- การ design หรือ redesign โครงสร้าง DB
-- bugs หรือ data quality issues ที่พบ
+Read when:
 
-Format:
-
-```markdown
-## YYYY-MM-DD — ชื่อ task
-
-### สิ่งที่ทำ
-- bullet points
-
-### Schema changes
-- Model X: เพิ่ม field Y (type)
-
-### หมายเหตุ
-- ข้อควรระวัง / decision ที่ตัดสินใจ
-```
-
-กฎ:
-- **เขียนทุกครั้ง** ที่มีการแตะ DB ไม่ว่าจะเล็กน้อยแค่ไหน
-- เขียน **ต่อท้าย** ไฟล์เดิม (append) ไม่ใช่เขียนทับ
-- ถ้าไฟล์ยังไม่มี ให้สร้างใหม่
+* Continuing existing tasks
+* Checking implementation status
 
 ---
 
-# Session Logging Rule
+## Feature Specifications
 
-**ทุกครั้งที่มีการ update code หรือทำงานในส่วนใดส่วนหนึ่งของ project ให้เขียน log ลงในไฟล์:**
+Located in:
 
-```
-context/History_log/YYYY-MM-DD.md
-```
+context/features/
 
-Format ของแต่ละ session:
+Each file defines a specific feature.
 
-```markdown
-## HH:MM — ชื่อ feature หรือ task
+Examples:
 
-### สิ่งที่ทำ
-- bullet points อธิบายสิ่งที่ทำในแต่ละขั้นตอน
+* history-score.md
+* tcas-analysis.md
+* mbti.md
+* mbti-core.md
 
-### Files changed
-- `path/to/file.ts` — คำอธิบาย
-```
+Read before:
 
-กฎ:
-- ถ้าไฟล์วันนั้นยังไม่มี ให้สร้างใหม่
-- เขียน **ทุกครั้ง** ที่ session จบ ไม่ว่าจะทำเยอะหรือน้อย
-- ให้เพียงพอที่จะ reconstruct ว่าทำอะไรไปบ้างโดยไม่ต้องอ่าน code
+* Creating a feature
+* Modifying a feature
+* Refactoring feature logic
+
+Feature specs override generic assumptions.
 
 ---
 
-# Database Philosophy
+## Roadmaps
 
-Data accuracy is critical.
+Located in:
 
-Never:
-- Guess TCAS score data
-- Fabricate historical statistics
+context/roadmap/
 
-Always:
-- Clearly label estimated calculations
-- Distinguish official vs predicted data
+Contains:
 
----
+* MVP roadmap
+* Phase roadmap
+* Future plans
 
-# Content Strategy
+Used for long-term planning only.
 
-The platform should support:
-- Viral educational content
-- Social sharing
-- TikTok-friendly tools
-- SEO landing pages
-
-Potential future features:
-- Faculty reviews
-- University reviews
-- Study planner
-- AI tutor
-- Community discussions
+Do not treat roadmap items as implemented features.
 
 ---
 
-# Development Priorities
+## Development Logs
 
-Priority order:
+Located in:
 
-1. TCAS score calculator
-2. Authentication
-3. Historical score database
-4. Admission prediction
-5. Dashboard
-6. MBTI system
-7. AI advisor
-8. SEO pages
-9. Community features
+context/History_log/
+
+Contains:
+
+* Daily implementation logs
+* Session history
+* Development decisions
+
+Use when:
+
+* Understanding previous work
+* Investigating regressions
+* Reconstructing implementation history
 
 ---
 
-# Important Notes
+# Document Priority Order
 
-This is a real production-oriented platform.
+When documents conflict:
 
-Focus on:
-- Scalability
-- Maintainability
-- UX quality
-- Performance
-- Reliability
-- Data accuracy
+1. PRODUCT.md
+2. UX.md
+3. DESIGN.md
+4. Feature Specification
+5. Business Rules
+6. Architecture
+7. Roadmap
+8. CLAUDE.md
 
-Avoid:
-- Toy examples
-- Overly generic UI
-- Fake data in production logic
-- Unnecessary complexity
+Follow the higher-priority document.

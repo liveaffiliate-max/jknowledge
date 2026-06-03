@@ -2,22 +2,29 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, BarChart2, Landmark, Brain } from "lucide-react"
+import { Home, BarChart2, Landmark, Brain, LayoutDashboard } from "lucide-react"
+import { useAuth } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
 
-const NAV_ITEMS = [
-  { href: "/",        label: "หน้าหลัก",  icon: Home      },
-  { href: "/analyze", label: "วิเคราะห์", icon: BarChart2  },
-  { href: "/scores",  label: "คะแนน",     icon: Landmark   },
-  { href: "/mbti",    label: "MBTI",       icon: Brain      },
+const BASE_ITEMS = [
+  { href: "/",        label: "หน้าหลัก",  icon: Home           },
+  { href: "/analyze", label: "วิเคราะห์", icon: BarChart2       },
+  { href: "/scores",  label: "คะแนน",     icon: Landmark        },
+  { href: "/mbti",    label: "MBTI",       icon: Brain           },
 ]
 
+const DASHBOARD_ITEM = { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }
+
 export function BottomNav() {
-  const pathname = usePathname()
+  const pathname  = usePathname()
+  const { isSignedIn } = useAuth()
+  const NAV_ITEMS = isSignedIn
+    ? [...BASE_ITEMS.slice(0, 3), DASHBOARD_ITEM, BASE_ITEMS[3]]
+    : BASE_ITEMS
 
   return (
     <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border/50 bg-white/95 backdrop-blur-sm">
-      <div className="grid grid-cols-4">
+      <div className={`grid grid-cols-${NAV_ITEMS.length}`}>
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active =
             href === "/" ? pathname === "/" : pathname.startsWith(href)
