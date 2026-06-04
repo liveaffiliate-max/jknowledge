@@ -32,7 +32,7 @@ export function UniversityGrid({ universities }: UniversityGridProps) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="ค้นหามหาวิทยาลัย เช่น จุฬา, มหิดล, เชียงใหม่..."
+          placeholder="ค้นหา มหาวิทยาลัย เช่น จุฬา, มหิดล, เชียงใหม่..."
           className={cn(
             "w-full rounded-xl border border-gray-200 bg-white py-3 pl-9 pr-4",
             "text-sm text-gray-900 outline-none transition-all",

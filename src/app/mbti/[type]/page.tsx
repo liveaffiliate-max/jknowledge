@@ -32,7 +32,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export const dynamic = "force-dynamic"
+export const revalidate = 86400
+
+// Pre-build all 16 MBTI type pages at build time → served from CDN edge on first visit
+export function generateStaticParams() {
+  return [
+    "INTJ", "INTP", "ENTJ", "ENTP",
+    "INFJ", "INFP", "ENFJ", "ENFP",
+    "ISTJ", "ISFJ", "ESTJ", "ESFJ",
+    "ISTP", "ISFP", "ESTP", "ESFP",
+  ].map((type) => ({ type }))
+}
 
 export default async function MBTITypePage({ params }: Props) {
   const { type } = await params

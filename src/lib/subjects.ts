@@ -61,6 +61,11 @@ export interface SubjectWeight {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** ตัด prefix "A-Level " ออกจาก label เพื่อแสดงแบบกระชับ เช่น "A-Level ฟิสิกส์" → "ฟิสิกส์" */
+export function stripALevelPrefix(label: string): string {
+  return label.replace(/^A-Level\s*/i, "")
+}
+
 export function getSubjectGroup(code: string): SubjectGroup {
   if (code.startsWith("tgat")) return "TGAT"
   if (code.startsWith("tpat")) return "TPAT"
@@ -112,9 +117,7 @@ export function weightsToSubjects(weights: Record<string, unknown>): SubjectWeig
 
   // ── BestOf virtual subject ──────────────────────────────────────────────────
   if (hasCal && typeof calSum === "number" && bestOfCodes.length > 0) {
-    const shortNames = bestOfCodes.map((c) =>
-      getSubjectLabel(c).replace(/^A-Level\s*/i, "")
-    )
+    const shortNames = bestOfCodes.map((c) => stripALevelPrefix(getSubjectLabel(c)))
     result.push({
       code:   "__bestof__",
       label:  `เลือกดีที่สุด (${shortNames.join(" / ")})`,

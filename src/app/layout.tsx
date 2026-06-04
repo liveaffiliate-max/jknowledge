@@ -2,7 +2,6 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { Geist_Mono } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google"
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,32 +10,20 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { PageTransition } from "@/components/layout/page-transition";
 import "./globals.css";
 
+// Only the 5 weights actually used in the UI — WOFF2 format (-71% vs TTF)
+// Dropped: Light (300), ExtraBold (800), and all italic variants (none used)
 const kanit = localFont({
   variable: "--font-kanit",
   display: "swap",
   src: [
-    { path: "../../public/font/Kanit-Light.ttf",           weight: "300", style: "normal" },
-    { path: "../../public/font/Kanit-LightItalic.ttf",     weight: "300", style: "italic" },
-    { path: "../../public/font/Kanit-Regular.ttf",         weight: "400", style: "normal" },
-    { path: "../../public/font/Kanit-Italic.ttf",          weight: "400", style: "italic" },
-    { path: "../../public/font/Kanit-Medium.ttf",          weight: "500", style: "normal" },
-    { path: "../../public/font/Kanit-MediumItalic.ttf",    weight: "500", style: "italic" },
-    { path: "../../public/font/Kanit-SemiBold.ttf",        weight: "600", style: "normal" },
-    { path: "../../public/font/Kanit-SemiBoldItalic.ttf",  weight: "600", style: "italic" },
-    { path: "../../public/font/Kanit-Bold.ttf",            weight: "700", style: "normal" },
-    { path: "../../public/font/Kanit-BoldItalic.ttf",      weight: "700", style: "italic" },
-    { path: "../../public/font/Kanit-ExtraBold.ttf",       weight: "800", style: "normal" },
-    { path: "../../public/font/Kanit-ExtraBoldItalic.ttf", weight: "800", style: "italic" },
-    { path: "../../public/font/Kanit-Black.ttf",           weight: "900", style: "normal" },
-    { path: "../../public/font/Kanit-BlackItalic.ttf",     weight: "900", style: "italic" },
+    { path: "../../public/font/Kanit-Regular.woff2",  weight: "400", style: "normal" },
+    { path: "../../public/font/Kanit-Medium.woff2",   weight: "500", style: "normal" },
+    { path: "../../public/font/Kanit-SemiBold.woff2", weight: "600", style: "normal" },
+    { path: "../../public/font/Kanit-Bold.woff2",     weight: "700", style: "normal" },
+    { path: "../../public/font/Kanit-Black.woff2",    weight: "900", style: "normal" },
   ],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Jknowledge — วิเคราะห์คะแนน TCAS และค้นหาคณะตาม MBTI",
@@ -53,7 +40,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider appearance={{ theme: shadcn }}>
-      <html lang="th" className={`${kanit.variable} ${geistMono.variable} h-full antialiased`}>
+      <html lang="th" className={`${kanit.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col bg-background text-foreground pb-[56px] sm:pb-0">
           <Toaster>
             <PageTransition>
