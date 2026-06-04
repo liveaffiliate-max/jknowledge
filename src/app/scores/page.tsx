@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "ข้อมูลคะแนนตัดสิทธิ์ TCAS ย้อนหลัง 6 ปี จากทุกมหาวิทยาลัยชั้นนำ เปรียบเทียบแนวโน้มคะแนน TCAS64–69",
 }
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
 
 export default async function ScoresPage() {
   const universities = await getUniversitiesWithStats()
@@ -30,7 +30,7 @@ export default async function ScoresPage() {
               </h1>
             </div>
             <p className="text-gray-500 text-sm ml-10">
-              ข้อมูลคะแนนตัดสิทธิ์ TCAS64–69 จาก{" "}
+              ข้อมูลคะแนน TCAS64–69 จาก{" "}
               <strong className="text-gray-700">{universities.length}</strong>{" "}
               มหาวิทยาลัย
             </p>

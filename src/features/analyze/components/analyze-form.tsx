@@ -63,6 +63,21 @@ function projectLabel(detail?: string, facultyName?: string): string | undefined
   return detail
 }
 
+/** สร้าง label ครบสำหรับ faculty option — ใช้ทั้ง combobox และ native select */
+function buildFacultyLabel(f: {
+  name: string
+  program: string
+  majorName?: string
+  detail?: string
+}): string {
+  return [
+    f.name,
+    programLabel(f.program),
+    f.majorName,
+    projectLabel(f.detail, f.name),
+  ].filter(Boolean).join(" · ")
+}
+
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const selectClass =
@@ -136,12 +151,7 @@ function FacultyCombobox({
   const labelMap = useMemo(() => {
     const map: Record<string, string> = {}
     for (const f of faculties) {
-      map[f.id] = [
-        f.name,
-        programLabel(f.program),
-        f.majorName,
-        projectLabel(f.detail, f.name),
-      ].filter(Boolean).join(" · ")
+      map[f.id] = buildFacultyLabel(f)
     }
     return map
   }, [faculties])
@@ -308,7 +318,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
     startAnalyze(async () => {
       const analyzed = await analyzeAction(facultyId, score)
       if (!analyzed) {
-        setError("ไม่พบข้อมูลคะแนนของคณะนี้ในระบบ")
+        setError("คณะนี้ยังไม่มีข้อมูลคะแนนย้อนหลัง ลองเลือกคณะอื่น")
         return
       }
       setResult(analyzed)
@@ -451,12 +461,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
               </option>
               {faculties.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {[
-                    f.name,
-                    programLabel(f.program),
-                    f.majorName,
-                    projectLabel(f.detail, f.name),
-                  ].filter(Boolean).join(" · ")}
+                  {buildFacultyLabel(f)}
                 </option>
               ))}
             </select>
@@ -483,7 +488,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
               {isLoadingRequirement && (
                 <div className="flex items-center justify-center gap-2.5 py-8 text-sm text-gray-400">
                   <Spinner />
-                  <span>กำลังโหลดสัดส่วนคะแนน...</span>
+                  <span>กำลังโหลดข้อมูลวิชา...</span>
                 </div>
               )}
 
@@ -503,13 +508,13 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
                   <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs text-amber-700">
                     <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
                     <span>
-                      ยังไม่พบข้อมูลสัดส่วนคะแนนสำหรับคณะนี้
-                      กรุณากรอกคะแนนรวมสัดส่วนโดยตรง (0–100)
+                      คณะนี้ยังไม่มีข้อมูลรายวิชา
+                      กรอกคะแนนรวมได้เลย (0–100)
                     </span>
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1.5">
-                      คะแนนรวมสัดส่วน
+                      คะแนนรวม
                     </label>
                     <Input
                       type="number"

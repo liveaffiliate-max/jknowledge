@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 
 const steps = [
-  { step: "01", title: "กรอกคะแนน", description: "ใส่คะแนน TCAS ของคุณในแต่ละวิชา" },
-  { step: "02", title: "เลือกคณะ", description: "เลือกมหาวิทยาลัยและคณะที่สนใจ" },
-  { step: "03", title: "ดูผลวิเคราะห์", description: "รับผลวิเคราะห์พร้อมคำแนะนำทันที" },
+  { step: "01", title: "เลือกคณะ", description: "เลือกมหาวิทยาลัยและคณะที่สนใจ" },
+  { step: "02", title: "กรอกคะแนน", description: "ใส่คะแนนแต่ละวิชาที่คณะกำหนด" },
+  { step: "03", title: "ดูผลวิเคราะห์", description: "รับผลพร้อมโอกาสรับทันที" },
 ];
 
 export default function HomePage() {
@@ -40,7 +40,7 @@ export default function HomePage() {
             <span className="text-green-700">รู้โอกาส ก่อนสมัคร</span>
           </h1>
           <p className="mb-8 text-lg leading-relaxed text-gray-600 sm:text-xl">
-            เปรียบเทียบคะแนนกับข้อมูลย้อนหลัง 5 ปี ทำนายโอกาสรับ
+            เปรียบเทียบคะแนนกับข้อมูลย้อนหลัง 6 ปี ทำนายโอกาสรับ
             <br className="hidden sm:block" />
             และรับคำแนะนำคณะที่เหมาะกับคุณ · ฟรี ไม่ต้องสมัครสมาชิก
           </p>
@@ -96,7 +96,7 @@ export default function HomePage() {
                 <div className="mb-5 flex items-start justify-between">
                   <BarChart2 className="h-9 w-9 text-green-600" />
                   <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                    ฟีเจอร์หลัก
+                    เครื่องมือหลัก
                   </span>
                 </div>
                 <h3 className="mb-3 text-xl font-bold text-gray-900 group-hover:text-green-800 sm:text-2xl">
@@ -111,15 +111,15 @@ export default function HomePage() {
                 <div className="mt-5 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    High Chance
+                    โอกาสสูง
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
                     <AlertCircle className="h-3.5 w-3.5" />
-                    Competitive
+                    แข่งขันได้
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">
                     <XCircle className="h-3.5 w-3.5" />
-                    Low Chance
+                    โอกาสน้อย
                   </span>
                 </div>
               </div>

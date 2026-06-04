@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { chanceColor, chanceLabel } from "@/utils/analyze"
+import { CHANCE_CONFIG } from "@/utils/analyze"
 import { ScoreTrendChartLazy as ScoreTrendChart } from "./score-trend-chart-lazy"
 import { ScorePositionBar } from "./score-position-bar"
 import type { AdmissionResult } from "@/types/tcas"
@@ -22,21 +22,21 @@ interface ResultCardProps {
 }
 
 const trendConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
-  rising: { icon: TrendingUp, label: "แนวโน้มคะแนนเพิ่มขึ้น", color: "text-red-500" },
-  falling: { icon: TrendingDown, label: "แนวโน้มคะแนนลดลง", color: "text-green-600" },
-  stable: { icon: Minus, label: "คะแนนคงที่", color: "text-gray-500" },
+  rising: { icon: TrendingUp, label: "คะแนนต่ำสุดสูงขึ้น · แข่งขันยากขึ้น", color: "text-red-500" },
+  falling: { icon: TrendingDown, label: "คะแนนต่ำสุดลดลง · แข่งขันง่ายขึ้น", color: "text-green-600" },
+  stable: { icon: Minus, label: "คะแนนต่ำสุดคงที่ · แนวโน้มเสถียร", color: "text-gray-500" },
 }
 
 const chanceIconConfig: Record<AdmissionResult["chance"], { icon: LucideIcon; color: string }> = {
-  high: { icon: CheckCircle2, color: "text-green-500" },
-  competitive: { icon: AlertCircle, color: "text-yellow-500" },
-  low: { icon: XCircle, color: "text-red-500" },
+  high:        { icon: CheckCircle2, color: "text-green-500" },
+  competitive: { icon: AlertCircle,  color: "text-yellow-500" },
+  low:         { icon: XCircle,      color: "text-red-500" },
 }
 
 export function ResultCard({ result, onReset }: ResultCardProps) {
   const { faculty, userScore, chance, gap, latestMinScore, latestAvgScore, trend } = result
-  const color = chanceColor(chance)
-  const trendInfo = trendConfig[trend]
+  const color        = CHANCE_CONFIG[chance]
+  const trendInfo    = trendConfig[trend]
   const chanceIconInfo = chanceIconConfig[chance]
 
   return (
@@ -46,7 +46,7 @@ export function ResultCard({ result, onReset }: ResultCardProps) {
         <div className="flex items-center gap-2">
           <chanceIconInfo.icon className={cn("h-6 w-6", chanceIconInfo.color)} />
           <span className={cn("text-xl font-bold", color.text)}>
-            {chanceLabel(chance)}
+            {color.label}
           </span>
         </div>
         <CardTitle className="mt-1 text-gray-900 text-base leading-snug break-words">
@@ -63,11 +63,11 @@ export function ResultCard({ result, onReset }: ResultCardProps) {
             <p className={cn("text-lg font-bold tabular-nums sm:text-2xl", color.text)}>{userScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-xs text-gray-500 mb-0.5">ต่ำสุด</p>
+            <p className="text-xs text-gray-500 mb-0.5">ต่ำสุดของคณะ</p>
             <p className="text-lg font-bold tabular-nums sm:text-2xl text-gray-700">{latestMinScore.toFixed(1)}</p>
           </div>
           <div className="rounded-xl bg-gray-50 p-3">
-            <p className="text-xs text-gray-500 mb-0.5">เฉลี่ย</p>
+            <p className="text-xs text-gray-500 mb-0.5">เฉลี่ยของคณะ</p>
             <p className="text-lg font-bold tabular-nums sm:text-2xl text-gray-700">{latestAvgScore.toFixed(1)}</p>
           </div>
         </div>

@@ -54,9 +54,9 @@ export default async function FacultyScorePage({ params }: Props) {
   const fieldLabel = FIELD_LABELS[faculty.field] ?? "อื่นๆ"
 
   const trendConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
-    rising:  { icon: TrendingUp,   label: "แนวโน้มคะแนนสูงขึ้น", color: "text-red-500" },
-    falling: { icon: TrendingDown, label: "แนวโน้มคะแนนลดลง",   color: "text-green-600" },
-    stable:  { icon: Minus,        label: "คะแนนคงที่",          color: "text-gray-500" },
+    rising:  { icon: TrendingUp,   label: "คะแนนต่ำสุดสูงขึ้น · แข่งขันยากขึ้น", color: "text-red-500" },
+    falling: { icon: TrendingDown, label: "คะแนนต่ำสุดลดลง · แข่งขันง่ายขึ้น",   color: "text-green-600" },
+    stable:  { icon: Minus,        label: "คะแนนต่ำสุดคงที่ · แนวโน้มเสถียร",     color: "text-gray-500" },
   }
   const trendInfo = trendConfig[trend]
 
@@ -122,35 +122,35 @@ export default async function FacultyScorePage({ params }: Props) {
                 <StatCard
                   label="คะแนนต่ำสุด"
                   value={latest.minScore.toFixed(2)}
-                  sub="cut-off score"
+                  sub="ปีล่าสุด"
                   accent="text-red-600"
                   bg="bg-red-50"
                 />
                 <StatCard
                   label="คะแนนเฉลี่ย"
                   value={latest.avgScore.toFixed(2)}
-                  sub="average score"
+                  sub="ปีล่าสุด"
                   accent="text-amber-600"
                   bg="bg-amber-50"
                 />
                 <StatCard
                   label="คะแนนสูงสุด"
                   value={latest.maxScore !== undefined ? latest.maxScore.toFixed(2) : "—"}
-                  sub="max score"
+                  sub="ปีล่าสุด"
                   accent="text-blue-600"
                   bg="bg-blue-50"
                 />
                 <StatCard
                   label="จำนวนที่นั่ง"
                   value={latest.seats !== undefined ? String(latest.seats) : "—"}
-                  sub="seats"
+                  sub="ที่นั่ง"
                   accent="text-purple-600"
                   bg="bg-purple-50"
                 />
                 <StatCard
-                  label="ปีข้อมูล"
+                  label="ข้อมูลย้อนหลัง"
                   value={String(scores.length)}
-                  sub="years of data"
+                  sub="ปี"
                   accent="text-green-600"
                   bg="bg-green-50"
                 />

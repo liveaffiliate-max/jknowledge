@@ -4,7 +4,7 @@ import { AnalyzeForm } from "@/features/analyze/components/analyze-form"
 import { getUniversities, getLatestTcasYear } from "@/server/queries"
 import { BarChart2 } from "lucide-react"
 
-export const dynamic = "force-dynamic"
+export const revalidate = 3600
 
 export const metadata: Metadata = {
   title: "วิเคราะห์คะแนน TCAS — Jknowledge",
@@ -37,7 +37,7 @@ export default async function AnalyzePage() {
               )}
             </div>
             <p className="text-gray-500 text-sm ml-9">
-              เปรียบเทียบคะแนนของคุณกับข้อมูลย้อนหลัง 5 ปี เพื่อประเมินโอกาสรับ
+              เปรียบเทียบคะแนนของคุณกับข้อมูลย้อนหลัง 6 ปี เพื่อประเมินโอกาสรับ
             </p>
             <p className="text-xs text-gray-400 mt-3 ml-9">
               ข้อมูลจาก mytcas · ผลเป็นการประมาณการ ไม่ใช่ผลรับรองการเข้าศึกษา

@@ -5,6 +5,7 @@ import {
   weightsToSubjects,
   calculateWeightedScore,
   getSubjectShortCode,
+  stripALevelPrefix,
 } from "@/lib/subjects"
 import type { SubjectGroup, SubjectWeight } from "@/lib/subjects"
 import { CheckCircle2, Target } from "lucide-react"
@@ -139,7 +140,7 @@ function BestOfRow({
           return (
             <div key={code} className="flex items-center gap-2">
               <span className={cn("text-xs text-gray-500 flex-1 max-sm:truncate", isBest && "font-semibold text-green-700")}>
-                {choices.labels[i].replace(/^A-Level\s*/i, "")}
+                {stripALevelPrefix(choices.labels[i])}
                 {isBest && <span className="ml-1.5 text-[10px] text-green-600 font-bold">★ ใช้คะแนนนี้</span>}
               </span>
               <div className="flex items-center gap-1 flex-shrink-0">
@@ -260,11 +261,11 @@ export function WeightedInputs({
         <div className="w-9 flex-shrink-0" />
         <div className="flex-1">วิชา</div>
         <div className="w-[90px] text-center flex-shrink-0">คะแนนของคุณ</div>
-        <div className="w-14 text-right flex-shrink-0">ส่วนรวม</div>
+        <div className="w-14 text-right flex-shrink-0">ผลรวม</div>
       </div>
 
       {/* Subject groups */}
-      {(["TGAT", "TPAT", "A-Level"] as SubjectGroup[]).map((g) => {
+      {(Object.keys(GROUP_CONFIG) as SubjectGroup[]).map((g) => {
         const list = groups[g]
         if (!list?.length) return null
         return (
@@ -282,7 +283,7 @@ export function WeightedInputs({
       <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-gray-700">คะแนนรวมสัดส่วน</p>
+            <p className="text-sm font-semibold text-gray-700">คะแนนรวมของคุณ</p>
             {!allFilled && (
               <p className="text-xs text-gray-400 mt-0.5">
                 กรอกแล้ว {filled}/{subjects.length} วิชา
@@ -325,7 +326,7 @@ export function WeightedInputs({
               : <Target className="h-4 w-4 flex-shrink-0 mt-px" />
             }
             <span>
-              คาดการณ์คะแนนขั้นต่ำปีหน้า:{" "}
+              คาดการณ์คะแนนขั้นต่ำ (จากแนวโน้ม):{" "}
               <strong>{estMinScore.toFixed(2)}</strong>
               {total > 0 && (
                 <span className="ml-1">
