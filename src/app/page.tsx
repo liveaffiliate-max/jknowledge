@@ -2,21 +2,26 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Header from "@/components/layout/header";
-import {
-  BarChart2,
-  Brain,
-  GraduationCap,
-  Database,
-  CheckCircle2,
-  AlertCircle,
-  XCircle,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight, GraduationCap } from "lucide-react";
+import { FadeIn } from "@/components/animations/fade-in";
+import { CountUp } from "@/components/animations/count-up";
 
-const steps = [
-  { step: "01", title: "เลือกคณะ", description: "เลือกมหาวิทยาลัยและคณะที่สนใจ" },
-  { step: "02", title: "กรอกคะแนน", description: "ใส่คะแนนแต่ละวิชาที่คณะกำหนด" },
-  { step: "03", title: "ดูผลวิเคราะห์", description: "รับผลพร้อมโอกาสรับทันที" },
+const featuredUniversities = [
+  "จุฬาลงกรณ์มหาวิทยาลัย",
+  "มหาวิทยาลัยธรรมศาสตร์",
+  "มหาวิทยาลัยมหิดล",
+  "มหาวิทยาลัยเกษตรศาสตร์",
+  "มหาวิทยาลัยเชียงใหม่",
+  "มหาวิทยาลัยขอนแก่น",
+  "มหาวิทยาลัยสงขลานครินทร์",
+  "มหาวิทยาลัยศิลปากร",
+  "มหาวิทยาลัยบูรพา",
+  "มหาวิทยาลัยนเรศวร",
+  "มจธ.",
+  "มจพ.",
+  "สจล.",
+  "มหาวิทยาลัยมหาสารคาม",
+  "มหาวิทยาลัยสุรนารี",
 ];
 
 export default function HomePage() {
@@ -24,8 +29,8 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       <Header />
 
-      {/* Hero */}
-      <section className="flex flex-1 flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-white px-4 py-20 text-center">
+      {/* ── Hero (full viewport, no animation — first impression) ── */}
+      <section className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-white px-4 py-16 text-center">
         <div className="mx-auto max-w-3xl">
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-green-100 px-4 py-1.5 text-sm font-medium text-green-700">
             <GraduationCap className="h-4 w-4" />
@@ -69,168 +74,145 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features — Bento layout */}
-      <section className="bg-white px-4 py-16">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-10">
-            <h2
-              className="text-2xl font-bold text-gray-900 sm:text-3xl"
-              style={{ textWrap: "balance" } as React.CSSProperties}
-            >
-              สามเครื่องมือที่ช่วยตัดสินใจ
-            </h2>
-            <p className="mt-2 text-sm text-gray-500">
-              ข้อมูลจาก mytcas · 50+ มหาวิทยาลัย · ย้อนหลัง 5 ปี
-            </p>
-          </div>
+      {/* ── Data Coverage ── */}
+      <section className="bg-gray-50 px-4 py-14 sm:py-16">
+        <div className="mx-auto max-w-3xl text-center">
 
-          {/* Bento grid */}
-          <div className="grid gap-4 lg:grid-cols-3 lg:grid-rows-2">
-
-            {/* Primary card — วิเคราะห์คะแนน (spans 2 rows, 2 cols on desktop) */}
-            <Link
-              href="/analyze"
-              className="group flex flex-col justify-between rounded-2xl border border-gray-100 bg-gray-50 p-7 transition-all hover:border-green-200 hover:bg-green-50 hover:shadow-sm lg:col-span-2 lg:row-span-2"
-            >
-              <div>
-                <div className="mb-5 flex items-start justify-between">
-                  <BarChart2 className="h-9 w-9 text-green-600" />
-                  <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                    เครื่องมือหลัก
-                  </span>
-                </div>
-                <h3 className="mb-3 text-xl font-bold text-gray-900 group-hover:text-green-800 sm:text-2xl">
-                  วิเคราะห์คะแนน TCAS
-                </h3>
-                <p className="text-sm leading-relaxed text-gray-600 sm:text-base">
-                  กรอกคะแนนแต่ละวิชา เลือกคณะที่สนใจ แล้วดูว่าคะแนนของคุณอยู่ตรงไหนเมื่อเทียบกับ
-                  คะแนนตัดสิทธิ์ 5 ปีย้อนหลัง ระบบจะบอกโอกาสรับอย่างตรงไปตรงมา
+          {/* Stats row with count-up */}
+          <FadeIn>
+            <div className="mb-10 flex items-center justify-center divide-x divide-gray-200">
+              <div className="px-6 sm:px-10">
+                <p className="text-3xl font-bold text-gray-900 sm:text-4xl">
+                  <CountUp to={50} suffix="+" />
                 </p>
-
-                {/* Chance indicators */}
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-800">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    โอกาสสูง
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800">
-                    <AlertCircle className="h-3.5 w-3.5" />
-                    แข่งขันได้
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700">
-                    <XCircle className="h-3.5 w-3.5" />
-                    โอกาสน้อย
-                  </span>
-                </div>
+                <p className="mt-1 text-sm text-gray-500">มหาวิทยาลัย</p>
               </div>
-
-              <div className="mt-6 flex items-center gap-1.5 text-sm font-semibold text-green-700">
-                เริ่มวิเคราะห์
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </div>
-            </Link>
-
-            {/* Secondary card 1 — คะแนนย้อนหลัง */}
-            <Link
-              href="/scores"
-              className="group flex flex-col justify-between rounded-2xl border border-gray-100 bg-gray-50 p-6 transition-all hover:border-green-200 hover:bg-green-50 hover:shadow-sm"
-            >
-              <div>
-                <Database className="mb-4 h-7 w-7 text-green-600" />
-                <h3 className="mb-2 font-bold text-gray-900 group-hover:text-green-800">
-                  คะแนนย้อนหลัง
-                </h3>
-                <p className="text-sm leading-relaxed text-gray-600">
-                  ดูคะแนนตัดสิทธิ์ทุกคณะ พร้อมกราฟแนวโน้มรายปี
+              <div className="px-6 sm:px-10">
+                <p className="text-3xl font-bold text-gray-900 sm:text-4xl">
+                  <CountUp to={500} suffix="+" />
                 </p>
+                <p className="mt-1 text-sm text-gray-500">คณะ</p>
               </div>
-              <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-green-700">
-                เปิดดู <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-              </div>
-            </Link>
-
-            {/* Secondary card 2 — MBTI */}
-            <Link
-              href="/mbti"
-              className="group flex flex-col justify-between rounded-2xl border border-gray-100 bg-gray-50 p-6 transition-all hover:border-green-200 hover:bg-green-50 hover:shadow-sm"
-            >
-              <div>
-                <Brain className="mb-4 h-7 w-7 text-green-600" />
-                <h3 className="mb-2 font-bold text-gray-900 group-hover:text-green-800">
-                  แนะนำคณะด้วย MBTI
-                </h3>
-                <p className="text-sm leading-relaxed text-gray-600">
-                  ทำแบบทดสอบ 20 ข้อ รู้บุคลิกภาพ รับคำแนะนำคณะที่เหมาะสม
+              <div className="px-6 sm:px-10">
+                <p className="text-3xl font-bold text-gray-900 sm:text-4xl">
+                  <CountUp to={6} /><span className="text-green-600 text-2xl sm:text-3xl"> ปี</span>
                 </p>
+                <p className="mt-1 text-sm text-gray-500">ข้อมูลย้อนหลัง</p>
               </div>
-              <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-green-700">
-                ทำแบบทดสอบ <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-              </div>
-            </Link>
+            </div>
+          </FadeIn>
 
-          </div>
+          {/* University name chips */}
+          <FadeIn delay={120}>
+            <div className="flex flex-wrap justify-center gap-2">
+              {featuredUniversities.map((uni) => (
+                <span
+                  key={uni}
+                  className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600"
+                >
+                  {uni}
+                </span>
+              ))}
+              <span className="rounded-full border border-dashed border-gray-200 bg-transparent px-3 py-1.5 text-xs text-gray-400">
+                +40 มหาวิทยาลัยอื่น
+              </span>
+            </div>
+          </FadeIn>
+
+          <FadeIn delay={200}>
+            <p className="mt-8 text-xs text-gray-400">อ้างอิงจาก mytcas</p>
+          </FadeIn>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="bg-gray-50 px-4 py-16">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-12 text-center">
-            <h2
-              className="text-3xl font-bold text-gray-900"
-              style={{ textWrap: "balance" } as React.CSSProperties}
-            >
-              วิธีใช้งาน
-            </h2>
-            <p className="mt-3 text-sm text-gray-500">3 ขั้นตอน ใช้เวลาไม่ถึง 2 นาที</p>
-          </div>
-          <div className="relative grid gap-6 sm:grid-cols-3">
-            {/* Connector line — desktop only */}
-            <div
-              className="absolute top-7 left-[calc(16.67%+28px)] right-[calc(16.67%+28px)] hidden h-px bg-gray-200 sm:block"
-              aria-hidden="true"
-            />
-            {steps.map((s) => (
-              <div key={s.step} className="flex flex-col items-center text-center">
-                <div className="relative mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-600 text-xl font-bold text-white shadow-sm">
-                  {s.step}
-                </div>
-                <h3 className="mb-2 font-semibold text-gray-900">{s.title}</h3>
-                <p className="text-sm text-gray-600">{s.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Bottom CTA */}
-      <section className="bg-green-600 px-4 py-16 text-center text-white">
+      {/* ── TCAS Journey ── */}
+      <section className="bg-white px-4 py-16 sm:py-20">
         <div className="mx-auto max-w-2xl">
-          <h2
-            className="mb-4 text-3xl font-bold"
-            style={{ textWrap: "balance" } as React.CSSProperties}
-          >
-            พร้อมวิเคราะห์คะแนนแล้วหรือยัง?
-          </h2>
-          <p className="mb-8 text-green-100">
-            เริ่มต้นได้เลย ฟรี ไม่ต้องสมัครสมาชิก
+          <FadeIn>
+            <h2
+              className="mb-10 text-2xl font-bold text-gray-900 sm:text-3xl"
+              style={{ textWrap: "balance" } as React.CSSProperties}
+            >
+              จากไม่แน่ใจ
+              <br className="sm:hidden" /> ถึงพร้อมสมัคร TCAS
+            </h2>
+          </FadeIn>
+
+          <div className="space-y-4">
+            <FadeIn delay={0}>
+              <Link
+                href="/analyze"
+                className="group flex items-start gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-green-200 hover:bg-green-50 sm:items-center"
+              >
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
+                  1
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900">รู้ว่าคะแนนของตัวเองอยู่ตรงไหน</p>
+                  <p className="mt-1 text-sm text-gray-600">
+                    กรอกคะแนน เลือกคณะ ดูว่าห่างจากคะแนนตัดเท่าไหร่ และโอกาสรับอยู่ที่ระดับไหน
+                  </p>
+                </div>
+                <ArrowRight className="hidden h-4 w-4 flex-shrink-0 text-gray-300 transition-colors group-hover:text-green-600 sm:block" />
+              </Link>
+            </FadeIn>
+
+            <FadeIn delay={80}>
+              <Link
+                href="/scores"
+                className="group flex items-start gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-green-200 hover:bg-green-50 sm:items-center"
+              >
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
+                  2
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900">สำรวจแนวโน้มคะแนนย้อนหลัง</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    ดูว่าคณะที่สนใจตัดคะแนนเพิ่มหรือลดในช่วง 6 ปีที่ผ่านมา เพื่อประเมินปีนี้
+                  </p>
+                </div>
+                <ArrowRight className="hidden h-4 w-4 flex-shrink-0 text-gray-300 transition-colors group-hover:text-green-600 sm:block" />
+              </Link>
+            </FadeIn>
+
+            <FadeIn delay={160}>
+              <Link
+                href="/mbti"
+                className="group flex items-start gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-green-200 hover:bg-green-50 sm:items-center"
+              >
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
+                  3
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-gray-900">ค้นหาตัวเองว่าคุณเหมาะกับคณะอะไร</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    ยังไม่แน่ใจว่าจะเรียนอะไร ลองดูว่าคนที่มีบุคลิกแบบเดียวกับคุณมักเลือกเรียนอะไร
+                  </p>
+                </div>
+                <ArrowRight className="hidden h-4 w-4 flex-shrink-0 text-gray-300 transition-colors group-hover:text-green-600 sm:block" />
+              </Link>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer + CTA */}
+      <footer className="border-t border-gray-100 bg-white px-4 py-6">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
+          <p className="text-sm text-gray-400">
+            © 2026 Jknowledge · อ้างอิงจาก mytcas · เป็นการประมาณการ ไม่ใช่ผลรับประกัน
           </p>
           <Link
             href="/analyze"
             className={cn(
-              buttonVariants({ size: "lg" }),
-              "bg-white text-green-700 hover:bg-green-50 font-semibold"
+              buttonVariants({ size: "sm" }),
+              "flex-shrink-0 bg-green-600 text-white hover:bg-green-700"
             )}
           >
             เริ่มวิเคราะห์คะแนน
-            <ArrowRight className="ml-1.5 h-4 w-4" />
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
           </Link>
         </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-gray-100 bg-white px-4 py-8 text-center text-sm text-gray-500">
-        <p>© 2026 Jknowledge · ข้อมูลทั้งหมดเป็นการประมาณการ ไม่ใช่ผลลัพธ์ที่รับประกัน</p>
       </footer>
     </div>
   );
