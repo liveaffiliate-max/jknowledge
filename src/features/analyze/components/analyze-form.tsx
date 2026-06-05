@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useMemo, useEffect } from "react"
+import { useState, useTransition, useMemo, useEffect, useCallback } from "react"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +20,9 @@ import {
   trackAnalyzeResult,
 } from "@/lib/analytics"
 import type { University, AdmissionResult, RequirementData } from "@/types/tcas"
-import { Check, AlertTriangle, BarChart2 } from "lucide-react"
+import { Check, AlertTriangle, BarChart2, X } from "lucide-react"
+import { getRegion, REGION_ORDER, type ThaiRegion } from "@/lib/thai-regions"
+import { expandThaiSynonyms } from "@/lib/thai-synonyms"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -63,21 +65,6 @@ function projectLabel(detail?: string, facultyName?: string): string | undefined
   return detail
 }
 
-/** สร้าง label ครบสำหรับ faculty option — ใช้ทั้ง combobox และ native select */
-function buildFacultyLabel(f: {
-  name: string
-  program: string
-  majorName?: string
-  detail?: string
-}): string {
-  return [
-    f.name,
-    programLabel(f.program),
-    f.majorName,
-    projectLabel(f.detail, f.name),
-  ].filter(Boolean).join(" · ")
-}
-
 // ── Persistence ───────────────────────────────────────────────────────────────
 // Save form inputs (not result) in sessionStorage so users who navigate to
 // /scores and back, or open a new tab from the dashboard, don't lose context.
@@ -111,6 +98,36 @@ function writePersisted(state: PersistedState | null) {
       return
     }
     window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // ignore quota / private mode errors
+  }
+}
+
+// ── Recent universities (localStorage, cross-session) ─────────────────────────
+// Surfaces the user's last few picks as quick-pick chips above the dropdown.
+// localStorage (not sessionStorage) so a returning user tomorrow still sees them.
+
+const RECENT_KEY = "jknowledge:recent-universities:v1"
+const MAX_RECENT = 3
+
+function readRecentIds(): string[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = window.localStorage.getItem(RECENT_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : []
+  } catch {
+    return []
+  }
+}
+
+function pushRecentId(id: string) {
+  if (typeof window === "undefined" || !id) return
+  try {
+    const current = readRecentIds()
+    const next = [id, ...current.filter((x) => x !== id)].slice(0, MAX_RECENT)
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(next))
   } catch {
     // ignore quota / private mode errors
   }
@@ -169,77 +186,226 @@ function Spinner() {
   )
 }
 
-// ── Faculty Combobox ──────────────────────────────────────────────────────────
+// ── Helpers for search strings (module-level → stable refs for useMemo) ───────
 
-function FacultyCombobox({
-  faculties,
-  value,
-  onChange,
-  disabled,
-  loading,
-  hasUniversity,
-}: {
-  faculties:    FacultyOption[]
-  value:        string
-  onChange:     (id: string) => void
-  disabled:     boolean
-  loading:      boolean
-  hasUniversity: boolean
-}) {
-  const labelMap = useMemo(() => {
-    const map: Record<string, string> = {}
-    for (const f of faculties) {
-      map[f.id] = buildFacultyLabel(f)
+function buildFacultySecondary(f: FacultyOption): string {
+  return [
+    programLabel(f.program),
+    f.majorName,
+    projectLabel(f.detail, f.name),
+  ].filter(Boolean).join(" · ")
+}
+
+// ── Generic Combobox ──────────────────────────────────────────────────────────
+// Used for both university and faculty selection. Unifies mobile+desktop into
+// one searchable interface (no more native <select>, no more mobile/desktop
+// asymmetry, no more iOS wheel picker).
+
+interface ComboboxItem { id: string }
+
+interface ComboboxProps<T extends ComboboxItem> {
+  items:             T[]
+  value:             string
+  onChange:          (id: string) => void
+  disabled?:         boolean
+  loading?:          boolean
+  placeholder:       string
+  ariaLabel:         string
+  emptyText:         string
+  /** Clean text shown in the input after selection (no synonyms, no separators). */
+  buildDisplayString: (item: T) => string
+  /** Wider text used only for the filter — may include synonyms / abbreviations. */
+  buildSearchString:  (item: T) => string
+  renderItem:         (item: T) => React.ReactNode
+  /**
+   * Optional grouping. If provided, items are bucketed by the returned key
+   * and rendered under a sticky GroupLabel header. Pass `groupOrder` to
+   * control section sequence (otherwise insertion order is used).
+   * Base UI auto-hides groups that have no matching items during search.
+   */
+  groupBy?:    (item: T) => string
+  groupOrder?: readonly string[]
+}
+
+function Combobox<T extends ComboboxItem>({
+  items, value, onChange, disabled, loading, placeholder, ariaLabel,
+  emptyText, buildDisplayString, buildSearchString, renderItem, groupBy, groupOrder,
+}: ComboboxProps<T>) {
+  const selectedItem = useMemo(
+    () => items.find((i) => i.id === value) ?? null,
+    [items, value]
+  )
+
+  // Controlled input value — we own the filter completely, bypassing Base UI's
+  // internal filter which conflicts with Group/Collection rendering.
+  const [inputValue, setInputValue] = useState(() =>
+    selectedItem ? buildDisplayString(selectedItem) : ""
+  )
+
+  // Sync input with selection from outside (e.g. parent calls onChange after
+  // hydrating sessionStorage, or user picks an item via the dropdown).
+  useEffect(() => {
+    setInputValue(selectedItem ? buildDisplayString(selectedItem) : "")
+  }, [selectedItem, buildDisplayString])
+
+  // The effective query: when the input still shows the selected display string
+  // (user just opened the popup without typing), treat as empty so the full
+  // list is browsable instead of being filtered down to the selection itself.
+  const query =
+    selectedItem && inputValue === buildDisplayString(selectedItem)
+      ? ""
+      : inputValue
+
+  // Pre-compute search strings once per items change — avoids running
+  // ~50 Thai-synonym regex passes per item on every keystroke. For a faculty
+  // list of 300 items this is the difference between 15,000 regex/keystroke
+  // and 1 Map.get lookup.
+  const searchIndex = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const item of items) {
+      map.set(item.id, buildSearchString(item).toLowerCase())
     }
     return map
-  }, [faculties])
+  }, [items, buildSearchString])
 
-  const placeholder = !hasUniversity
-    ? "เลือกมหาวิทยาลัยก่อน"
-    : loading
-    ? "กำลังโหลด..."
-    : "พิมพ์เพื่อค้นหาคณะ / สาขา..."
+  const filteredItems = useMemo(() => {
+    if (!query.trim()) return items
+    const q = query.toLowerCase().trim()
+    return items.filter((item) => searchIndex.get(item.id)?.includes(q))
+  }, [items, query, searchIndex])
+
+  // Bucket the filtered subset (NOT the raw items) so empty groups disappear
+  // and the rendered structure matches what the user actually sees.
+  const grouped = useMemo(() => {
+    if (!groupBy) return null
+    const buckets = new Map<string, T[]>()
+    for (const item of filteredItems) {
+      const key = groupBy(item)
+      if (!buckets.has(key)) buckets.set(key, [])
+      buckets.get(key)!.push(item)
+    }
+    const ordered: { key: string; items: T[] }[] = []
+    if (groupOrder) {
+      for (const key of groupOrder) {
+        const bucket = buckets.get(key)
+        if (bucket && bucket.length > 0) ordered.push({ key, items: bucket })
+      }
+      for (const [key, bucket] of buckets) {
+        if (!groupOrder.includes(key)) ordered.push({ key, items: bucket })
+      }
+    } else {
+      for (const [key, bucket] of buckets) ordered.push({ key, items: bucket })
+    }
+    return ordered
+  }, [filteredItems, groupBy, groupOrder])
+
+  const isUnavailable = !!(disabled || loading)
+  const hasResults = filteredItems.length > 0
 
   return (
-    <ComboboxPrimitive.Root
-      value={value || null}
-      onValueChange={(id) => onChange(id ?? "")}
-      itemToStringLabel={(id) => (id ? (labelMap[id] ?? "") : "")}
-      disabled={disabled || loading}
+    <ComboboxPrimitive.Root<T>
+      items={items}
+      value={selectedItem}
+      onValueChange={(item) => onChange(item?.id ?? "")}
+      inputValue={inputValue}
+      onInputValueChange={(v) => setInputValue(v)}
+      itemToStringLabel={(item) => (item ? buildDisplayString(item) : "")}
+      // Disable Base UI's internal filter — we render only what's already
+      // matched, so anything that reaches the DOM must be visible.
+      filter={() => true}
+      disabled={isUnavailable}
     >
-      <div className="w-full min-w-0">
-      <ComboboxPrimitive.Input
-        aria-label="เลือกคณะหรือสาขา"
-        placeholder={placeholder}
-        className={cn(
-          selectClass,
-          (disabled || loading) && "opacity-50 cursor-not-allowed"
-        )}
-      />
+      <div className="relative w-full min-w-0">
+        <ComboboxPrimitive.Input
+          aria-label={ariaLabel}
+          placeholder={placeholder}
+          // Select all text on focus so the first keystroke replaces the
+          // existing selection display (iOS Spotlight / address-bar pattern).
+          // Without this, typing while a value is shown just appends to it
+          // and the filter finds nothing.
+          onFocus={(e) => e.currentTarget.select()}
+          className={cn(
+            selectClass,
+            isUnavailable && "opacity-50 cursor-not-allowed",
+            // Reserve space on the right for spinner or clear button when needed
+            (loading || selectedItem) && "pr-9"
+          )}
+        />
+        {loading ? (
+          <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+            <Spinner />
+          </div>
+        ) : selectedItem ? (
+          <ComboboxPrimitive.Clear
+            aria-label="ล้างค่า"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-100"
+          >
+            <X className="h-4 w-4" />
+          </ComboboxPrimitive.Clear>
+        ) : null}
       </div>
       <ComboboxPrimitive.Portal>
         <ComboboxPrimitive.Positioner sideOffset={4} className="z-50 w-(--anchor-width)">
           <ComboboxPrimitive.Popup className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
             <ComboboxPrimitive.List>
-              {faculties.map((f) => (
-                <ComboboxPrimitive.Item
-                  key={f.id}
-                  value={f.id}
-                  className="cursor-pointer px-3 py-2 text-sm text-gray-800 outline-none data-[highlighted]:bg-green-50 data-[highlighted]:text-green-700"
-                >
-                  {labelMap[f.id]}
-                </ComboboxPrimitive.Item>
-              ))}
+              {grouped
+                ? grouped.map(({ key, items: groupItems }) => (
+                    <ComboboxPrimitive.Group key={key}>
+                      <ComboboxPrimitive.GroupLabel className="sticky top-0 flex items-center justify-between bg-gray-50/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500 backdrop-blur-sm">
+                        <span>{key}</span>
+                        <span className="tabular-nums text-gray-400 normal-case tracking-normal">
+                          {groupItems.length}
+                        </span>
+                      </ComboboxPrimitive.GroupLabel>
+                      {groupItems.map((item) => (
+                        <ComboboxPrimitive.Item
+                          key={item.id}
+                          value={item}
+                          className="group cursor-pointer px-3 py-2.5 outline-none data-[highlighted]:bg-green-50"
+                        >
+                          {renderItem(item)}
+                        </ComboboxPrimitive.Item>
+                      ))}
+                    </ComboboxPrimitive.Group>
+                  ))
+                : filteredItems.map((item) => (
+                    <ComboboxPrimitive.Item
+                      key={item.id}
+                      value={item}
+                      className="group cursor-pointer px-3 py-2.5 outline-none data-[highlighted]:bg-green-50"
+                    >
+                      {renderItem(item)}
+                    </ComboboxPrimitive.Item>
+                  ))}
             </ComboboxPrimitive.List>
-            <ComboboxPrimitive.Empty className="px-3 py-4 text-center text-sm text-gray-400">
-              ไม่พบคณะที่ค้นหา
-            </ComboboxPrimitive.Empty>
+            {!hasResults && (
+              <div className="px-3 py-4 text-center text-sm text-gray-500">
+                {emptyText}
+              </div>
+            )}
           </ComboboxPrimitive.Popup>
         </ComboboxPrimitive.Positioner>
       </ComboboxPrimitive.Portal>
     </ComboboxPrimitive.Root>
   )
 }
+
+// Stable module-level helpers (avoid re-running useMemo / breaking referential equality)
+//
+// Display strings: clean text that ends up in the input after selection.
+// Search strings:  same text + Thai synonyms — used only by the filter, never displayed.
+const universityDisplayString = (u: { name: string }) => u.name
+const universitySearchString = (u: { name: string; id: string }) =>
+  expandThaiSynonyms(u.name)
+const universityRegion = (u: { location: string | null }): ThaiRegion =>
+  getRegion(u.location)
+
+const facultyDisplayString = (f: FacultyOption) => {
+  const secondary = buildFacultySecondary(f)
+  return secondary ? `${f.name} · ${secondary}` : f.name
+}
+const facultySearchString = (f: FacultyOption) =>
+  expandThaiSynonyms(facultyDisplayString(f))
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -249,6 +415,18 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
   const [universityName, setUniversityName] = useState("")
   const [facultyId,      setFacultyId]      = useState("")
   const [faculties,      setFaculties]      = useState<FacultyOption[]>([])
+
+  // ── Recent universities (localStorage) ──────────────────────────
+  // Hydrated after mount so SSR + initial paint stays stable.
+  const [recentIds, setRecentIds] = useState<string[]>([])
+  useEffect(() => { setRecentIds(readRecentIds()) }, [])
+  const recentUniversities = useMemo(() =>
+    recentIds
+      .map((id) => universities.find((u) => u.id === id))
+      .filter((u): u is University => Boolean(u))
+      .filter((u) => u.id !== universityId),  // hide the one already selected
+    [recentIds, universities, universityId]
+  )
 
   // ── Requirement (weights) ────────────────────────────────────────
   const [requirement,         setRequirement]         = useState<RequirementData | null>(null)
@@ -332,6 +510,9 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
     const uniName = universities.find((u) => u.id === value)?.name ?? value
     setUniversityName(uniName)
     trackUniversitySelect(uniName)
+    // Save to recent — cross-session quick-pick row above the combobox
+    pushRecentId(value)
+    setRecentIds(readRecentIds())
     startFetchFaculties(async () => {
       const data = await fetchFacultiesAction(value, filterYear)
       setFaculties(data)
@@ -357,10 +538,11 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
     }
   }
 
-  function handleSubjectScore(code: string, value: string) {
+  // Stable ref → SubjectRow's React.memo can skip re-renders for untouched rows
+  const handleSubjectScore = useCallback((code: string, value: string) => {
     setSubjectScores((prev) => ({ ...prev, [code]: value }))
     setResult(null)
-  }
+  }, [])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -522,63 +704,81 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
               )}
             </div>
 
-            {/* University */}
-            <div>
-              <label className="sr-only" htmlFor="university-select">เลือกมหาวิทยาลัย</label>
-              <select
-                id="university-select"
-                value={universityId}
-                onChange={(e) => handleUniversityChange(e.target.value)}
-                className={selectClass}
-              >
-                <option value="">— เลือกมหาวิทยาลัย —</option>
-                {universities.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
+            {/* Recent universities — quick pick row */}
+            {recentUniversities.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-medium text-gray-400">เลือกล่าสุด:</span>
+                {recentUniversities.map((u) => (
+                  <button
+                    type="button"
+                    key={u.id}
+                    onClick={() => handleUniversityChange(u.id)}
+                    className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 transition-colors hover:bg-green-100 hover:text-green-700"
+                  >
+                    {u.shortName}
+                  </button>
                 ))}
-              </select>
-            </div>
+              </div>
+            )}
 
-            {/* Faculty — mobile: combobox (searchable), desktop: native select */}
-            <div className="lg:hidden">
-              <FacultyCombobox
-                faculties={faculties}
-                value={facultyId}
-                onChange={handleFacultyChange}
-                disabled={!universityId}
-                loading={isFetchingFaculties}
-                hasUniversity={!!universityId}
-              />
-            </div>
-            <select
-              value={facultyId}
-              onChange={(e) => handleFacultyChange(e.target.value)}
-              disabled={!universityId || isFetchingFaculties}
-              className={cn(
-                selectClass,
-                "hidden lg:block",
-                (!universityId || isFetchingFaculties) && "opacity-50"
+            {/* University — grouped by region */}
+            <Combobox
+              items={universities}
+              value={universityId}
+              onChange={handleUniversityChange}
+              placeholder="ค้นหามหาวิทยาลัย..."
+              ariaLabel="เลือกมหาวิทยาลัย"
+              emptyText="ไม่พบมหาวิทยาลัย"
+              buildDisplayString={universityDisplayString}
+              buildSearchString={universitySearchString}
+              groupBy={universityRegion}
+              groupOrder={REGION_ORDER}
+              renderItem={(u) => (
+                <div className="text-sm font-medium text-gray-900 group-data-[highlighted]:text-green-800">
+                  {u.name}
+                </div>
               )}
-            >
-              <option value="">
-                {!universityId
+            />
+
+            {/* Faculty */}
+            <Combobox
+              items={faculties}
+              value={facultyId}
+              onChange={handleFacultyChange}
+              disabled={!universityId}
+              loading={isFetchingFaculties}
+              placeholder={
+                !universityId
                   ? "เลือกมหาวิทยาลัยก่อน"
                   : isFetchingFaculties
                   ? "กำลังโหลด..."
-                  : "— เลือกคณะ / สาขา —"}
-              </option>
-              {faculties.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {buildFacultyLabel(f)}
-                </option>
-              ))}
-            </select>
+                  : "ค้นหาคณะ / สาขา..."
+              }
+              ariaLabel="เลือกคณะหรือสาขา"
+              emptyText="ไม่พบคณะที่ค้นหา"
+              buildDisplayString={facultyDisplayString}
+              buildSearchString={facultySearchString}
+              renderItem={(f) => {
+                const secondary = buildFacultySecondary(f)
+                return (
+                  <>
+                    <div className="text-sm font-medium leading-tight text-gray-900 group-data-[highlighted]:text-green-800">
+                      {f.name}
+                    </div>
+                    {secondary && (
+                      <div className="mt-0.5 truncate text-xs leading-tight text-gray-500 group-data-[highlighted]:text-green-600">
+                        {secondary}
+                      </div>
+                    )}
+                  </>
+                )
+              }}
+            />
           </div>
 
           {/* ── Step 2: กรอกคะแนน ── */}
           {facultyId && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-4">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 space-y-4 animate-step-reveal">
               <div className="flex items-center gap-2">
                 <StepBadge
                   n={2}
@@ -646,7 +846,7 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
 
           {/* ── Error ── */}
           {error && (
-            <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+            <div className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 animate-error-reveal">
               <AlertTriangle className="h-4 w-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -683,7 +883,9 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
         */}
         <div className={cn("lg:sticky lg:top-6", !result && "hidden lg:block")}>
           {result ? (
-            <ResultCard result={result} onReset={handleReset} />
+            <div className="animate-result-reveal">
+              <ResultCard result={result} onReset={handleReset} />
+            </div>
           ) : (
             <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-400">
               <BarChart2 className="h-12 w-12 text-gray-300" />

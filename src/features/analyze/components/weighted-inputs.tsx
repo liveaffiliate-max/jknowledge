@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { cn } from "@/lib/utils"
 import {
   weightsToSubjects,
@@ -37,15 +38,18 @@ const GROUP_CONFIG: Record<
 }
 
 // ── Subject row ───────────────────────────────────────────────────────────────
+// Memoized: only re-renders when its own subject/score/onChange ref changes.
+// Combined with a stable onChange from parent (useCallback), typing in one
+// subject's input no longer re-renders the other 6 rows.
 
-function SubjectRow({
+const SubjectRow = memo(function SubjectRow({
   subject,
   score,
   onChange,
 }: {
   subject: SubjectWeight
   score: string
-  onChange: (value: string) => void
+  onChange: (code: string, value: string) => void
 }) {
   const cfg = GROUP_CONFIG[subject.group]
   const numVal = parseFloat(score)
@@ -67,7 +71,7 @@ function SubjectRow({
         <input
           type="number" min={0} max={100} step={0.01} placeholder="0" value={score}
           aria-label={subject.label}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(subject.code, e.target.value)}
           className={cn(
             "w-[68px] rounded-lg border px-2.5 py-2 text-sm font-medium text-center",
             "outline-none transition-all duration-150",
@@ -86,7 +90,7 @@ function SubjectRow({
       </div>
     </div>
   )
-}
+})
 
 // ── BestOf row (เลือกดีที่สุด) ────────────────────────────────────────────────
 
@@ -209,7 +213,7 @@ function SubjectGroupSection({
               key={sub.code}
               subject={sub}
               score={scores[sub.code] ?? ""}
-              onChange={(v) => onChange(sub.code, v)}
+              onChange={onChange}
             />
           )
         )}
