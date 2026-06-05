@@ -71,7 +71,7 @@ export function ScorePositionBar({
               transform: minPct < 15 ? "none" : "translateX(-50%)",
             }}
           >
-            {minScore.toFixed(0)}
+          คะแนนขั้นต่ำ  {minScore.toFixed(0)}
           </span>
         </div>
 

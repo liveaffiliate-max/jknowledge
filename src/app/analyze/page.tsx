@@ -25,22 +25,12 @@ export default async function AnalyzePage() {
         {/* Page header */}
         <div className="bg-white border-b border-gray-100">
           <div className="mx-auto max-w-4xl px-4 py-8">
-            <div className="flex items-start justify-between gap-3 mb-1">
-              <div className="flex items-center gap-3 min-w-0">
-                <BarChart2 className="h-6 w-6 text-green-600 flex-shrink-0" />
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">วิเคราะห์คะแนน TCAS</h1>
-              </div>
-              {latestYear && (
-                <span className="flex-shrink-0 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                  TCAS{latestYear - 2500}
-                </span>
-              )}
+            <div className="flex items-center gap-3 mb-1">
+              <BarChart2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">วิเคราะห์คะแนน TCAS</h1>
             </div>
             <p className="text-gray-500 text-sm ml-9">
               เปรียบเทียบคะแนนของคุณกับข้อมูลย้อนหลัง 6 ปี เพื่อประเมินโอกาสสอบติด
-            </p>
-            <p className="text-xs text-gray-400 mt-3 ml-9">
-              ข้อมูลอ้างอิงจากเว็บไซต์ mytcas · ผลเป็นการประมาณการ ไม่ใช่ผลรับรองการเข้าศึกษา
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useMemo } from "react"
+import { useState, useTransition, useMemo, useEffect } from "react"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -76,6 +76,44 @@ function buildFacultyLabel(f: {
     f.majorName,
     projectLabel(f.detail, f.name),
   ].filter(Boolean).join(" · ")
+}
+
+// ── Persistence ───────────────────────────────────────────────────────────────
+// Save form inputs (not result) in sessionStorage so users who navigate to
+// /scores and back, or open a new tab from the dashboard, don't lose context.
+
+const STORAGE_KEY = "jknowledge:analyze:v1"
+
+type PersistedState = {
+  universityId:   string
+  universityName: string
+  facultyId:      string
+  subjectScores:  Record<string, string>
+  fallbackScore:  string
+}
+
+function readPersisted(): PersistedState | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as PersistedState
+  } catch {
+    return null
+  }
+}
+
+function writePersisted(state: PersistedState | null) {
+  if (typeof window === "undefined") return
+  try {
+    if (!state || !state.universityId) {
+      window.sessionStorage.removeItem(STORAGE_KEY)
+      return
+    }
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // ignore quota / private mode errors
+  }
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -227,6 +265,49 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
   const [isFetchingFaculties, startFetchFaculties] = useTransition()
   const [isAnalyzing,          startAnalyze]        = useTransition()
 
+  // ── Hydrate from sessionStorage on mount ────────────────────────
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    const saved = readPersisted()
+    if (!saved?.universityId) {
+      setHydrated(true)
+      return
+    }
+    setUniversityId(saved.universityId)
+    setUniversityName(saved.universityName)
+    startFetchFaculties(async () => {
+      const data = await fetchFacultiesAction(saved.universityId, filterYear)
+      setFaculties(data)
+      // Restore faculty + scores only if the saved facultyId still exists this year
+      if (saved.facultyId && data.some((f) => f.id === saved.facultyId)) {
+        setFacultyId(saved.facultyId)
+        setIsLoadingRequirement(true)
+        try {
+          const req = await getFacultyRequirementAction(saved.facultyId)
+          setRequirement(req)
+        } finally {
+          setIsLoadingRequirement(false)
+        }
+        setSubjectScores(saved.subjectScores || {})
+        setFallbackScore(saved.fallbackScore || "")
+      }
+      setHydrated(true)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Persist on every relevant state change (after hydration) ────
+  useEffect(() => {
+    if (!hydrated) return
+    writePersisted({
+      universityId,
+      universityName,
+      facultyId,
+      subjectScores,
+      fallbackScore,
+    })
+  }, [hydrated, universityId, universityName, facultyId, subjectScores, fallbackScore])
+
   // ── Live weighted score ──────────────────────────────────────────
   const calculatedScore = useMemo(() => {
     if (!requirement) return null
@@ -353,6 +434,23 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
     setError("")
   }
 
+  // ── Clear everything including saved state ───────────────────────
+  function handleClearAll() {
+    setUniversityId("")
+    setUniversityName("")
+    setFacultyId("")
+    setFaculties([])
+    setRequirement(null)
+    setSubjectScores({})
+    setFallbackScore("")
+    setResult(null)
+    setError("")
+    writePersisted(null)
+  }
+
+  // Show clear button only when there's actually something to clear
+  const hasAnyState = !!universityId || !!facultyId || Object.keys(subjectScores).length > 0 || !!fallbackScore
+
   // ── Derived step (1 | 2 | 3) ──────────────────────────────────────
   const currentStep = result ? 3 : facultyId ? 2 : 1
 
@@ -360,6 +458,17 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
   return (
     <form onSubmit={handleSubmit} className="min-w-0">
       {/* Step progress bar */}
+      <div className="mb-2 flex items-center justify-end gap-2 h-5">
+        {hasAnyState && (
+          <button
+            type="button"
+            onClick={handleClearAll}
+            className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            ล้างค่าทั้งหมด
+          </button>
+        )}
+      </div>
       <div className="mb-6 flex items-center gap-2">
         {(["เลือกคณะ", "กรอกคะแนน", "ผลวิเคราะห์"] as const).map((label, i) => {
           const step = i + 1
@@ -568,11 +677,15 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
         </div>
 
         {/* ─────────────────────── Right column ────────────────────── */}
-        <div className="lg:sticky lg:top-6">
+        {/*
+          Mobile: only render when there's a result (no empty placeholder wasting viewport).
+          Desktop: always render — empty state fills the sticky column meaningfully.
+        */}
+        <div className={cn("lg:sticky lg:top-6", !result && "hidden lg:block")}>
           {result ? (
             <ResultCard result={result} onReset={handleReset} />
           ) : (
-            <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center text-gray-400">
+            <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white p-8 text-center text-gray-400">
               <BarChart2 className="h-12 w-12 text-gray-300" />
               <div>
                 <p className="text-sm font-medium">ผลวิเคราะห์จะแสดงที่นี่</p>
