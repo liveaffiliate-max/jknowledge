@@ -30,24 +30,24 @@ export default function HomePage() {
       <Header />
 
       {/* ── Hero (full viewport, no animation — first impression) ── */}
-      <section className="flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-white px-4 py-16 text-center">
+      <section className="flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-white px-4 py-16 text-center">
         <div className="mx-auto max-w-3xl">
           <span className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-green-100 px-4 py-1.5 text-sm font-medium text-green-700">
             <GraduationCap className="h-4 w-4" />
             สำหรับนักเรียน TCAS ทุกคน
           </span>
           <h1
-            className="mb-6 text-4xl font-bold leading-tight tracking-tight text-gray-900 sm:text-5xl lg:text-6xl"
-            style={{ textWrap: "balance" } as React.CSSProperties}
+            className="mb-6 font-bold leading-tight tracking-tight text-gray-900"
+            style={{
+              fontSize: "clamp(1.875rem, 6.5vw, 3.75rem)",
+              textWrap: "balance",
+            } as React.CSSProperties}
           >
-            วิเคราะห์คะแนน TCAS
-            <br />
-            <span className="text-green-700">รู้โอกาส ก่อนสมัคร</span>
+            รู้โอกาสก่อนสมัคร
+            <span className="block text-green-700">ด้วยคะแนนย้อนหลัง 6 ปี</span>
           </h1>
-          <p className="mb-8 text-lg leading-relaxed text-gray-600 sm:text-xl">
-            เปรียบเทียบคะแนนกับข้อมูลย้อนหลัง 6 ปี ทำนายโอกาสรับ
-            <br className="hidden sm:block" />
-            และรับคำแนะนำคณะที่เหมาะกับคุณ · ฟรี ไม่ต้องสมัครสมาชิก
+          <p className="mb-8 text-lg leading-relaxed text-gray-600 sm:text-xl" style={{ textWrap: "balance" } as React.CSSProperties}>
+            กรอกคะแนน เห็นทันทีว่าติดที่ไหนได้บ้าง · ฟรี ไม่ต้อง login
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
@@ -104,19 +104,26 @@ export default function HomePage() {
 
           {/* University name chips */}
           <FadeIn delay={120}>
-            <div className="flex flex-wrap justify-center gap-2">
-              {featuredUniversities.map((uni) => (
-                <span
-                  key={uni}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600"
-                >
-                  {uni}
+            <Link
+              href="/scores"
+              className="group block rounded-2xl px-2 py-3 transition-colors hover:bg-white"
+              aria-label="ดูคะแนนย้อนหลังทั้งหมด"
+            >
+              <div className="flex flex-wrap justify-center gap-2">
+                {featuredUniversities.map((uni) => (
+                  <span
+                    key={uni}
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 transition-colors group-hover:border-green-200 group-hover:text-green-800"
+                  >
+                    {uni}
+                  </span>
+                ))}
+                <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 bg-transparent px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors group-hover:border-green-400 group-hover:text-green-700">
+                  +40 มหาวิทยาลัยอื่น
+                  <ArrowRight className="h-3 w-3" />
                 </span>
-              ))}
-              <span className="rounded-full border border-dashed border-gray-200 bg-transparent px-3 py-1.5 text-xs text-gray-400">
-                +40 มหาวิทยาลัยอื่น
-              </span>
-            </div>
+              </div>
+            </Link>
           </FadeIn>
 
           <FadeIn delay={200}>
@@ -133,8 +140,7 @@ export default function HomePage() {
               className="mb-10 text-2xl font-bold text-gray-900 sm:text-3xl"
               style={{ textWrap: "balance" } as React.CSSProperties}
             >
-              จากไม่แน่ใจ
-              <br className="sm:hidden" /> ถึงพร้อมสมัคร TCAS
+              จากไม่แน่ใจ ถึงพร้อมสมัคร TCAS
             </h2>
           </FadeIn>
 
@@ -148,8 +154,8 @@ export default function HomePage() {
                   1
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">รู้ว่าคะแนนของตัวเองอยู่ตรงไหน</p>
-                  <p className="mt-1 text-sm text-gray-600">
+                  <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">รู้ว่าคะแนนของตัวเองอยู่ตรงไหน</p>
+                  <p className="mt-1 text-sm text-gray-600 transition-colors group-hover:text-green-800">
                     กรอกคะแนน เลือกคณะ ดูว่าห่างจากคะแนนตัดเท่าไหร่ และโอกาสรับอยู่ที่ระดับไหน
                   </p>
                 </div>
@@ -166,8 +172,8 @@ export default function HomePage() {
                   2
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">สำรวจแนวโน้มคะแนนย้อนหลัง</p>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">สำรวจแนวโน้มคะแนนย้อนหลัง</p>
+                  <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-green-800">
                     ดูว่าคณะที่สนใจตัดคะแนนเพิ่มหรือลดในช่วง 6 ปีที่ผ่านมา เพื่อประเมินปีนี้
                   </p>
                 </div>
@@ -184,8 +190,8 @@ export default function HomePage() {
                   3
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900">ค้นหาตัวเองว่าคุณเหมาะกับคณะอะไร</p>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">ค้นหาตัวเองว่าคุณเหมาะกับคณะอะไร</p>
+                  <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-green-800">
                     ยังไม่แน่ใจว่าจะเรียนอะไร ลองดูว่าคนที่มีบุคลิกแบบเดียวกับคุณมักเลือกเรียนอะไร
                   </p>
                 </div>
