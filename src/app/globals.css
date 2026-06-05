@@ -161,3 +161,48 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* ── Motion: product register ─────────────────────────────────────────────
+   State-conveying animations only. No decorative page-load choreography.
+   All durations follow the 150ms / 250ms / 350ms / 700ms hero scale.
+   Easing: ease-out-quart for natural deceleration.
+*/
+
+@keyframes step-reveal {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes error-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes result-reveal {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@layer utilities {
+  .animate-step-reveal {
+    animation: step-reveal 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-error-reveal {
+    animation: error-reveal 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .animate-result-reveal {
+    animation: result-reveal 350ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+/* Honor user motion preferences — accessibility, not optional */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

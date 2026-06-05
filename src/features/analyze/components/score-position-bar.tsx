@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 import type { AdmissionChance } from "@/types/tcas"
 import { MapPin } from "lucide-react"
@@ -26,6 +29,20 @@ export function ScorePositionBar({
   const userPct = toPercent(userScore)
   const minPct = toPercent(minScore)
   const avgPct = toPercent(avgScore)
+
+  // Hero moment: dot slides from 0% → userPct on mount.
+  // Initial render uses left:0 so the transition has somewhere to come from.
+  // Reduced-motion users skip the slide entirely.
+  const [dotMounted, setDotMounted] = useState(false)
+  useEffect(() => {
+    if (typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDotMounted(true)
+      return
+    }
+    const id = requestAnimationFrame(() => setDotMounted(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
 
   const barColor: Record<AdmissionChance, string> = {
     high: "bg-green-500",
@@ -92,13 +109,17 @@ export function ScorePositionBar({
           </span>
         </div>
 
-        {/* User score dot */}
+        {/* User score dot — slides from 0% to final position on mount */}
         <div
           className={cn(
             "absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-5 w-5 rounded-full border-2 border-white shadow-md z-10",
+            "transition-[left,opacity] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
             barColor[chance]
           )}
-          style={{ left: `${userPct}%` }}
+          style={{
+            left: dotMounted ? `${userPct}%` : "0%",
+            opacity: dotMounted ? 1 : 0,
+          }}
         >
           <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-bold text-gray-700">
             {userScore.toFixed(1)}
