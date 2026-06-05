@@ -37,10 +37,10 @@ export default async function AnalyzePage() {
               )}
             </div>
             <p className="text-gray-500 text-sm ml-9">
-              เปรียบเทียบคะแนนของคุณกับข้อมูลย้อนหลัง 6 ปี เพื่อประเมินโอกาสรับ
+              เปรียบเทียบคะแนนของคุณกับข้อมูลย้อนหลัง 6 ปี เพื่อประเมินโอกาสสอบติด
             </p>
             <p className="text-xs text-gray-400 mt-3 ml-9">
-              ข้อมูลอ้างอิงจาก mytcas · ผลเป็นการประมาณการ ไม่ใช่ผลรับรองการเข้าศึกษา
+              ข้อมูลอ้างอิงจากเว็บไซต์ mytcas · ผลเป็นการประมาณการ ไม่ใช่ผลรับรองการเข้าศึกษา
             </p>
           </div>
         </div>
@@ -52,7 +52,7 @@ export default async function AnalyzePage() {
       </main>
 
       <footer className="border-t border-gray-100 bg-white px-4 py-6 text-center text-sm text-gray-400">
-        © 2026 Jknowledge · ข้อมูลทั้งหมดเป็นการประมาณการ ไม่ใช่ผลลัพธ์ที่รับประกัน
+        <p>© 2026 Jknowledge · ข้อมูลทั้งหมดเป็นอ้างอิงจากเว็บไซต์ mytcas · เป็นเพียงการประมาณการ ไม่ใช่ผลลัพธ์ที่รับประกันการสอบติด</p>
       </footer>
     </div>
   )

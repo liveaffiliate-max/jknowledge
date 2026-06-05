@@ -207,13 +207,13 @@ export default async function FacultyScorePage({ params }: Props) {
           {/* Disclaimer */}
           <p className="flex items-center justify-center gap-1.5 text-xs text-center text-gray-400 pb-4">
             <AlertTriangle className="h-3 w-3 flex-shrink-0" />
-            ข้อมูลอ้างอิงจาก mytcas · เป็นการประมาณการ ไม่รับประกันความถูกต้อง
+            ข้อมูลอ้างอิงจากเว็บไซต์ mytcas · เป็นการประมาณการ ไม่รับประกันความถูกต้อง
           </p>
         </div>
       </main>
 
       <footer className="border-t border-gray-100 bg-white px-4 py-6 text-center text-sm text-gray-400">
-        © 2026 Jknowledge · ข้อมูลอ้างอิงจาก mytcas · เป็นการประมาณการ ไม่รับประกันความถูกต้อง
+        <p>© 2026 Jknowledge · ข้อมูลทั้งหมดเป็นอ้างอิงจากเว็บไซต์ mytcas · เป็นเพียงการประมาณการ ไม่ใช่ผลลัพธ์ที่รับประกันการสอบติด</p>
       </footer>
     </div>
   )

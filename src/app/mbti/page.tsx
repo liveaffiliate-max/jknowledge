@@ -15,28 +15,7 @@ export default function MBTIPage() {
       <Header />
 
       <main className="flex-1 bg-gray-50">
-        {/* Page header */}
-        <div className="bg-white border-b border-gray-100">
-          <div className="mx-auto max-w-4xl px-4 py-4 sm:py-6">
-            <div className="flex items-center gap-3">
-              <Brain className="h-5 w-5 text-green-600 flex-shrink-0" />
-              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">ค้นหาบุคลิกภาพ MBTI</h1>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2.5 ml-8">
-              {["16 บุคลิกภาพ", "~3 นาที", "แชร์ได้"].map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Quiz */}
-        <div className="mx-auto max-w-4xl px-4 py-4 sm:py-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:py-16">
           <MBTIQuiz />
         </div>
       </main>

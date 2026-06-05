@@ -26,11 +26,11 @@ import type { MBTIAnswer, MBTIDimension, MBTIQuestion, MBTIResult } from "@/type
 // ── Scale config ──────────────────────────────────────────────────────────────
 
 const SCALE = [
-  { value: 1 as const, fill: "bg-green-600 text-white",   ring: "ring-green-500" },
-  { value: 2 as const, fill: "bg-green-300 text-green-900", ring: "ring-green-300" },
-  { value: 3 as const, fill: "bg-gray-400  text-white",   ring: "ring-gray-400" },
-  { value: 4 as const, fill: "bg-blue-300  text-blue-900",  ring: "ring-blue-300" },
-  { value: 5 as const, fill: "bg-blue-600  text-white",   ring: "ring-blue-500" },
+  { value: 1 as const, fill: "bg-green-600 text-white",    ring: "ring-green-500", passive: "bg-green-100 border-green-200" },
+  { value: 2 as const, fill: "bg-green-300 text-green-900", ring: "ring-green-300", passive: "bg-green-50  border-green-100" },
+  { value: 3 as const, fill: "bg-gray-400  text-white",    ring: "ring-gray-400",   passive: "bg-gray-100  border-gray-200"  },
+  { value: 4 as const, fill: "bg-blue-300  text-blue-900", ring: "ring-blue-300",   passive: "bg-blue-50   border-blue-100"  },
+  { value: 5 as const, fill: "bg-blue-600  text-white",    ring: "ring-blue-500",   passive: "bg-blue-100  border-blue-200"  },
 ]
 
 // (spectrum slider removed — using simple 5-dot layout with smooth transitions)
@@ -62,6 +62,8 @@ export function MBTIQuiz() {
   const [celebration, setCelebration]     = useState<{ dim: MBTIDimension; label: string } | null>(null)
   // intro screen before quiz starts
   const [started, setStarted]             = useState(false)
+  // Method 1: randomize which option appears on top each question
+  const [displayFlipped, setDisplayFlipped] = useState(false)
 
   const answeredCount = answered.length
   const currentQ      = pool.length > 0 ? pickNextQuestion(pool, progress) : null
@@ -108,7 +110,7 @@ export function MBTIQuiz() {
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   // Track previously answered questions for "go back"
-  const [history, setHistory] = useState<{ question: MBTIQuestion; answer: MBTIAnswer }[]>([])
+  const [history, setHistory] = useState<{ question: MBTIQuestion; answer: MBTIAnswer; flipped: boolean }[]>([])
 
   function handleNext() {
     if (!likert || !currentQ || animating) return
@@ -116,25 +118,32 @@ export function MBTIQuiz() {
     const weight    = currentQ.weight    ?? 1.0
     const isReverse = currentQ.isReverse ?? false
 
+    // Method 1: when display is flipped, invert likert before scoring
+    // (value 1 = toward top option; if flipped, top = B so scoring value flips)
+    const scoringLikert = displayFlipped
+      ? ((6 - likert) as 1 | 2 | 3 | 4 | 5)
+      : likert
+
     const newAnswer: MBTIAnswer = {
       questionId:     currentQ.id,
       dimension:      currentQ.dimension,
-      likert,
+      likert:         scoringLikert,
       weight,
       isReverse,
       responseTimeMs: Date.now() - questionStartTime,
     }
     const newAnswers  = [...answered, newAnswer]
     const newPool     = pool.filter((q) => q.id !== currentQ.id)
-    const newProgress = updateProgress(progress, currentQ.dimension, likert, weight, isReverse)
+    const newProgress = updateProgress(progress, currentQ.dimension, scoringLikert, weight, isReverse)
     const completed   = newlyCompletedDimensions(progress, newProgress)
+    const nextFlipped = Math.random() < 0.5
 
     // Auto-finish: enough confidence OR ran out of questions → cinematic reveal
     if (newPool.length === 0 || canFinishEarly(newProgress)) {
       const mbtiResult = computeMBTIResult(newAnswers)
       setAnswered(newAnswers)
       setProgress(newProgress)
-      setHistory((h) => [...h, { question: currentQ, answer: newAnswer }])
+      setHistory((h) => [...h, { question: currentQ, answer: newAnswer, flipped: displayFlipped }])
       setPendingResult(mbtiResult)
       setRevealing(true)
 
@@ -159,8 +168,9 @@ export function MBTIQuiz() {
       setAnswered(newAnswers)
       setPool(newPool)
       setProgress(newProgress)
-      setHistory((h) => [...h, { question: currentQ, answer: newAnswer }])
+      setHistory((h) => [...h, { question: currentQ, answer: newAnswer, flipped: displayFlipped }])
       setLikert(null)
+      setDisplayFlipped(nextFlipped)
       setQuestionStartTime(Date.now())
       setQuestionKey((k) => k + 1)
       setAnimating(false)
@@ -174,13 +184,18 @@ export function MBTIQuiz() {
   function handleBack() {
     if (history.length === 0 || animating) return
     const prev = history[history.length - 1]
-    const { question: prevQ, answer: prevA } = prev
+    const { question: prevQ, answer: prevA, flipped: prevFlipped } = prev
 
-    // Reverse the progress contribution
+    // Reverse the progress contribution (prevA.likert is scoring value)
     const direction = prevA.isReverse ? -1 : 1
     const contribution = [0, 2, 1, 0, -1, -2][prevA.likert] * direction * prevA.weight
     const dim = prevA.dimension
     const p = progress[dim]
+
+    // Convert scoring likert back to display position for that question's flip state
+    const displayLikert = prevFlipped
+      ? ((6 - prevA.likert) as 1 | 2 | 3 | 4 | 5)
+      : prevA.likert
 
     setHistory((h) => h.slice(0, -1))
     setAnswered((a) => a.slice(0, -1))
@@ -193,7 +208,8 @@ export function MBTIQuiz() {
         maxPossible: p.maxPossible - prevA.weight * 2,
       },
     })
-    setLikert(prevA.likert)
+    setLikert(displayLikert)
+    setDisplayFlipped(prevFlipped)
     setQuestionStartTime(Date.now())
   }
 
@@ -205,6 +221,7 @@ export function MBTIQuiz() {
     setHistory([])
     setStarted(false)
     setLikert(null)
+    setDisplayFlipped(Math.random() < 0.5)
     setQuestionKey(0)
     setAnimating(false)
     setQuestionStartTime(Date.now())
@@ -230,28 +247,83 @@ export function MBTIQuiz() {
   // ── Intro screen ──────────────────────────────────────────────────────────
   if (!started) {
     return (
-      <div className="mx-auto max-w-xl">
-        <div className="rounded-2xl border border-gray-200 bg-green-50 p-8 text-center shadow-sm">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-100">
-            <Brain className="h-8 w-8 text-green-600" />
+      <div className="mx-auto max-w-lg">
+        <div className="rounded-2xl border border-gray-200 bg-white p-8">
+
+          {/* Icon */}
+          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50">
+            <Brain className="h-6 w-6 text-green-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">พร้อมค้นหาตัวเองแล้วหรือยัง?</h2>
-          <p className="text-sm text-gray-500 leading-relaxed mb-2">
-            ตอบคำถามสั้น ๆ เกี่ยวกับตัวคุณ ระบบจะวิเคราะห์บุคลิกภาพ
-            <br />พร้อมแนะนำคณะที่เหมาะสม
+
+          {/* Heading — show end state, not just the action */}
+          <h2
+            className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl"
+            style={{ textWrap: "balance" } as React.CSSProperties}
+          >
+            รู้บุคลิก แล้วรับคำแนะนำคณะ
+          </h2>
+          <p className="mb-6 text-sm leading-relaxed text-gray-500">
+            ระบบจะวิเคราะห์แนวคิดและวิธีมองโลกของคุณ แล้วแนะนำคณะที่เหมาะกับบุคลิกภาพนั้น
           </p>
-          <div className="flex flex-wrap justify-center gap-2 mb-6">
-            {["ใช้เวลา ~3 นาที", "ไม่มีคำตอบถูก/ผิด", "ตอบตามใจจริง"].map((tag) => (
-              <span key={tag} className="rounded-full bg-green-50 border border-green-100 px-3 py-1 text-xs font-medium text-green-700">
-                {tag}
-              </span>
+
+          {/* Checklist — staggered fade-in */}
+          <ul className="mb-6 space-y-2.5">
+            {[
+              "ใช้เวลา ~3 นาที ไม่ต้องเตรียมตัว",
+              "ไม่มีคำตอบถูกหรือผิด — ตอบตามที่รู้สึกจริง",
+              "รับคำแนะนำคณะพร้อมเหตุผลที่ตรงกับตัวคุณ",
+            ].map((item, i) => (
+              <li
+                key={item}
+                className="flex items-start gap-2.5 text-sm text-gray-600 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
+                style={{ animationDuration: "400ms", animationDelay: `${i * 130}ms`, animationFillMode: "both" }}
+              >
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                {item}
+              </li>
             ))}
+          </ul>
+
+          {/* Scale explanation */}
+          <div className="mb-7 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3.5">
+            <p className="mb-3 text-xs font-medium text-gray-500">วิธีตอบแต่ละข้อ</p>
+            <p className="mb-3 text-xs text-gray-500 leading-relaxed">
+              แต่ละข้อมีสองตัวเลือก กดวงกลมเพื่อบอกว่าคุณเอนเอียงไปทางไหน
+            </p>
+            {/* Mini scale preview — dot + label per column */}
+            {(() => {
+              const previewDots = [
+                { passive: "bg-green-200 border-green-400", label: "เห็นด้วยที่สุด" },
+                { passive: "bg-green-100 border-green-300", label: "เห็นด้วย" },
+                { passive: "bg-gray-200 border-gray-400",  label: "" },
+                { passive: "bg-blue-100 border-blue-300",  label: "เห็นด้วย" },
+                { passive: "bg-blue-200 border-blue-400",  label: "เห็นด้วยที่สุด" },
+              ]
+              return (
+                <div className="flex items-start justify-between">
+                  {previewDots.map((dot, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1.5" style={{ width: "20%" }}>
+                      <div className="flex items-center w-full">
+                        <div className={cn("h-px flex-1", i > 0 ? "bg-gray-200" : "bg-transparent")} />
+                        <div className={cn("h-8 w-8 flex-shrink-0 rounded-full border-2", dot.passive)} />
+                        <div className={cn("h-px flex-1", i < 4 ? "bg-gray-200" : "bg-transparent")} />
+                      </div>
+                      <span className="w-full text-center text-[10px] leading-tight text-gray-500">
+                        {dot.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
+
+          {/* CTA */}
           <button
             onClick={() => { setStarted(true); trackMBTIStart() }}
-            className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-green-600 text-sm font-semibold text-white shadow-sm hover:bg-green-700 motion-safe:transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
+            className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl bg-green-600 text-sm font-semibold text-white hover:bg-green-700 motion-safe:transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
           >
-            เริ่มทำแบบทดสอบ
+            เริ่มค้นหาบุคลิกของฉัน
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -349,12 +421,26 @@ export function MBTIQuiz() {
             : "motion-safe:animate-in motion-safe:slide-in-from-left-3 motion-safe:fade-in duration-200"
         )}
       >
+        {/* Progress bar */}
+        <div className="px-6 pt-4 pb-0">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-gray-400">ข้อที่ {answeredCount + 1}</span>
+            <span className="text-[10px] text-gray-400 tabular-nums">{Math.round(overall * 100)}%</span>
+          </div>
+          <div className="h-1 w-full rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-green-500 transition-all duration-700 ease-out"
+              style={{ width: `${Math.round(overall * 100)}%` }}
+            />
+          </div>
+        </div>
+
         {/* Adaptive framing + question */}
-        <div className="px-6 pt-5 pb-4">
+        <div className="px-6 pt-4 pb-4">
           <div className="mb-2 flex items-center gap-1.5">
             <span className={cn("inline-block h-1.5 w-1.5 rounded-full", meta.barColor)} />
             <span className="text-xs font-medium text-gray-400">
-              ข้อที่ {answeredCount + 1} · ทำความเข้าใจ{meta.label}ของคุณ
+              ทำความเข้าใจ{meta.label}ของคุณ
             </span>
           </div>
           <p className="text-base font-semibold leading-snug text-gray-900">
@@ -362,84 +448,91 @@ export function MBTIQuiz() {
           </p>
         </div>
 
-        {/* ── Spectrum layout (vertical on mobile, horizontal on desktop) */}
-        <div className="px-5 pb-6 pt-2 space-y-3">
+        {/* ── Spectrum layout ── */}
+        <div className="px-5 pb-6 pt-2">
 
-          {/* Option A label */}
-          <button
-            type="button"
-            onClick={() => setLikert(1)}
-            className={cn(
-              "w-full rounded-xl px-4 py-3 text-left text-sm leading-snug motion-safe:transition-[background-color,border-color,color] duration-150 cursor-pointer border outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1",
-              likert && likert <= 2
-                ? "border-green-300 bg-green-50 text-green-800 font-medium"
-                : "border-gray-100 text-gray-700 hover:bg-gray-50"
-            )}
+          {/* Method 3: options + dots fade in together after 240ms
+              so user reads the question first, then both options appear simultaneously */}
+          <div
+            className="space-y-3 motion-safe:animate-in motion-safe:fade-in"
+            style={{ animationDuration: "260ms", animationDelay: "240ms", animationFillMode: "both" }}
           >
-            {currentQ.optionA}
-          </button>
+            {/* Top option — determined by displayFlipped (Method 1) */}
+            <button
+              type="button"
+              onClick={() => setLikert(1)}
+              className={cn(
+                "w-full rounded-xl px-4 py-3 text-left text-sm leading-snug motion-safe:transition-[background-color,border-color,color] duration-150 cursor-pointer border outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1",
+                likert && likert <= 2
+                  ? "border-green-300 bg-green-50 text-green-800 font-medium"
+                  : "border-gray-100 text-gray-700 hover:bg-gray-50"
+              )}
+            >
+              {displayFlipped ? currentQ.optionB : currentQ.optionA}
+            </button>
 
-          {/* 5 spectrum dots with connecting line */}
-          <div className="flex items-center justify-center py-2">
-            {SCALE.map((s, i) => {
-              const isSelected = likert === s.value
-              return (
-                <div key={s.value} className="flex items-center">
-                  {i > 0 && (
-                    <div className={cn(
-                      "h-0.5 w-6 sm:w-8 transition-colors duration-300 ease-in-out",
-                      (likert && (
-                        (s.value <= likert && SCALE[i - 1].value <= likert) ||
-                        (s.value >= likert && SCALE[i - 1].value >= likert)
-                      )) ? (likert <= 2 ? "bg-green-300" : likert >= 4 ? "bg-blue-300" : "bg-gray-300")
-                        : "bg-gray-200"
-                    )} />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setLikert(s.value)}
-                    aria-label={
-                      s.value === 1 ? `เห็นด้วยกับตัวเลือกแรกมากที่สุด` :
-                      s.value === 2 ? `ค่อนข้างเห็นด้วยกับตัวเลือกแรก` :
-                      s.value === 3 ? `กลางๆ ไม่ได้โน้มเอียง` :
-                      s.value === 4 ? `ค่อนข้างเห็นด้วยกับตัวเลือกที่สอง` :
-                      `เห็นด้วยกับตัวเลือกที่สองมากที่สุด`
-                    }
-                    className={cn(
-                      "flex h-11 w-11 items-center justify-center rounded-full border-2",
-                      "motion-safe:transition-[background-color,border-color,box-shadow] duration-300 ease-in-out",
-                      isSelected
-                        ? cn("shadow-lg", s.fill, s.ring.replace("ring-", "border-"))
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+            {/* 5 spectrum dots */}
+            <div className="flex items-center justify-center py-2">
+              {SCALE.map((s, i) => {
+                const isSelected = likert === s.value
+                return (
+                  <div key={s.value} className="flex items-center">
+                    {i > 0 && (
+                      <div className={cn(
+                        "h-0.5 w-6 sm:w-8 transition-colors duration-300 ease-in-out",
+                        (likert && (
+                          (s.value <= likert && SCALE[i - 1].value <= likert) ||
+                          (s.value >= likert && SCALE[i - 1].value >= likert)
+                        )) ? (likert <= 2 ? "bg-green-300" : likert >= 4 ? "bg-blue-300" : "bg-gray-300")
+                          : "bg-gray-200"
+                      )} />
                     )}
-                  >
-                    {isSelected && (
-                      <Check className="h-4 w-4 animate-in zoom-in-50 duration-200" />
-                    )}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
+                    <button
+                      type="button"
+                      onClick={() => setLikert(s.value)}
+                      aria-label={
+                        s.value === 1 ? "เห็นด้วยกับตัวเลือกบนมากที่สุด" :
+                        s.value === 2 ? "ค่อนข้างเห็นด้วยกับตัวเลือกบน" :
+                        s.value === 3 ? "กลางๆ ไม่ได้โน้มเอียง" :
+                        s.value === 4 ? "ค่อนข้างเห็นด้วยกับตัวเลือกล่าง" :
+                        "เห็นด้วยกับตัวเลือกล่างมากที่สุด"
+                      }
+                      className={cn(
+                        "flex h-11 w-11 items-center justify-center rounded-full border-2",
+                        "motion-safe:transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out",
+                        isSelected
+                          ? cn("shadow-md scale-110", s.fill, s.ring.replace("ring-", "border-"))
+                          : cn(s.passive, "hover:scale-110 hover:shadow-sm")
+                      )}
+                    >
+                      {isSelected && (
+                        <Check className="h-4 w-4 animate-in zoom-in-50 duration-200" />
+                      )}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
 
-          {/* Option B label */}
-          <button
-            type="button"
-            onClick={() => setLikert(5)}
-            className={cn(
-              "w-full rounded-xl px-4 py-3 text-left text-sm leading-snug motion-safe:transition-[background-color,border-color,color] duration-150 cursor-pointer border outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1",
-              likert && likert >= 4
-                ? "border-blue-300 bg-blue-50 text-blue-800 font-medium"
-                : "border-gray-100 text-gray-700 hover:bg-gray-50"
-            )}
-          >
-            {currentQ.optionB}
-          </button>
+            {/* Scale hint */}
+            <div className="flex justify-between px-1 text-xs text-gray-400">
+              <span>← ตัวเลือกบน</span>
+              <span>ตัวเลือกล่าง →</span>
+            </div>
 
-          {/* Scale hint */}
-          <div className="flex justify-between px-1 text-xs text-gray-400">
-            <span>← ตัวเลือกแรก</span>
-            <span>ตัวเลือกที่สอง →</span>
+            {/* Bottom option */}
+            <button
+              type="button"
+              onClick={() => setLikert(5)}
+              className={cn(
+                "w-full rounded-xl px-4 py-3 text-left text-sm leading-snug motion-safe:transition-[background-color,border-color,color] duration-150 cursor-pointer border outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1",
+                likert && likert >= 4
+                  ? "border-blue-300 bg-blue-50 text-blue-800 font-medium"
+                  : "border-gray-100 text-gray-700 hover:bg-gray-50"
+              )}
+            >
+              {displayFlipped ? currentQ.optionA : currentQ.optionB}
+            </button>
           </div>
 
           {/* Back + Next — back always rendered to prevent layout shift */}

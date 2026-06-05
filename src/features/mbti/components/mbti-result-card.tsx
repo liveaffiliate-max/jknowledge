@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -31,11 +32,17 @@ interface DimBarProps {
   rightColor: string
 }
 
-function DimBar({ leftLabel, rightLabel, leftScore, rightScore, leftColor, rightColor }: DimBarProps) {
+function DimBar({ leftLabel, rightLabel, leftScore, rightScore, leftColor, rightColor, index = 0 }: DimBarProps & { index?: number }) {
   const total = leftScore + rightScore
   const leftPct = total === 0 ? 50 : Math.round((leftScore / total) * 100)
   const rightPct = 100 - leftPct
   const dominantLeft = leftScore >= rightScore
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 120 + index * 140)
+    return () => clearTimeout(t)
+  }, [index])
 
   return (
     <div className="space-y-1.5">
@@ -49,8 +56,8 @@ function DimBar({ leftLabel, rightLabel, leftScore, rightScore, leftColor, right
       </div>
       <div className="relative h-3 w-full rounded-full bg-gray-100 overflow-hidden">
         <div
-          className={cn("absolute top-0 left-0 h-full rounded-full transition-all duration-500", leftColor)}
-          style={{ width: `${leftPct}%` }}
+          className={cn("absolute top-0 left-0 h-full rounded-full transition-all duration-700 ease-out", leftColor)}
+          style={{ width: mounted ? `${leftPct}%` : "0%" }}
         />
       </div>
       <div className="flex items-center justify-between text-xs">
@@ -199,22 +206,22 @@ export function MBTIResultCard({ result, onRestart }: MBTIResultCardProps) {
           <BarChart2 className="h-4 w-4" />
           สัดส่วนบุคลิกภาพ
         </div>
-        <DimBar
+        <DimBar index={0}
           leftLabel="E" rightLabel="I"
           leftScore={scores.E} rightScore={scores.I}
           leftColor="bg-blue-400" rightColor="bg-indigo-400"
         />
-        <DimBar
+        <DimBar index={1}
           leftLabel="S" rightLabel="N"
           leftScore={scores.S} rightScore={scores.N}
           leftColor="bg-yellow-400" rightColor="bg-orange-400"
         />
-        <DimBar
+        <DimBar index={2}
           leftLabel="T" rightLabel="F"
           leftScore={scores.T} rightScore={scores.F}
           leftColor="bg-purple-400" rightColor="bg-pink-400"
         />
-        <DimBar
+        <DimBar index={3}
           leftLabel="J" rightLabel="P"
           leftScore={scores.J} rightScore={scores.P}
           leftColor="bg-green-400" rightColor="bg-teal-400"

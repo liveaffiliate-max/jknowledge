@@ -54,7 +54,7 @@ export default async function ScoresPage() {
       </main>
 
       <footer className="border-t border-gray-100 bg-white px-4 py-6 text-center text-sm text-gray-400">
-        © 2026 Jknowledge · ข้อมูลจาก mytcas · เป็นการประมาณการ ไม่รับประกันความถูกต้อง
+        <p>© 2026 Jknowledge · ข้อมูลทั้งหมดเป็นอ้างอิงจากเว็บไซต์ mytcas · เป็นเพียงการประมาณการ ไม่ใช่ผลลัพธ์ที่รับประกันการสอบติด</p>
       </footer>
     </div>
   )
