@@ -19,40 +19,25 @@ export function CountUp({ to, duration = 1400, suffix = "", className }: CountUp
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return
 
-    let firstEntry = true
+    // Reset to 0 — animation starts from 0 when element scrolls into view.
+    el.textContent = `0${suffix}`
 
-    const animate = () => {
-      const start = performance.now()
-      const tick = (now: number) => {
-        const elapsed = now - start
-        const progress = Math.min(elapsed / duration, 1)
-        // ease-out-quart
-        const eased = 1 - Math.pow(1 - progress, 4)
-        el.textContent = `${Math.round(eased * to)}${suffix}`
-        if (progress < 1) requestAnimationFrame(tick)
-      }
-      requestAnimationFrame(tick)
-    }
-
-    // Use first observer callback to check initial visibility.
-    // Above-fold: keep SSR final value, skip animation (no flash to 0).
-    // Below-fold: reset to 0 and animate when scrolled into view.
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (firstEntry) {
-          firstEntry = false
-          if (!entry.isIntersecting) {
-            el.textContent = `0${suffix}`
-            return
-          }
-          // already visible — keep SSR value, no animation needed
-          observer.disconnect()
-          return
-        }
         if (entry.isIntersecting && !hasStarted.current) {
           hasStarted.current = true
           observer.disconnect()
-          animate()
+
+          const start = performance.now()
+          const tick = (now: number) => {
+            const elapsed = now - start
+            const progress = Math.min(elapsed / duration, 1)
+            // ease-out-quart
+            const eased = 1 - Math.pow(1 - progress, 4)
+            el.textContent = `${Math.round(eased * to)}${suffix}`
+            if (progress < 1) requestAnimationFrame(tick)
+          }
+          requestAnimationFrame(tick)
         }
       },
       { threshold: 0.6 }
