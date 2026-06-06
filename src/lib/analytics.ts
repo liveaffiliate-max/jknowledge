@@ -2,6 +2,29 @@
 
 import { sendGAEvent } from "@next/third-parties/google"
 
+// ── Privacy helpers ───────────────────────────────────────────────────────────
+// Raw TCAS scores are personal educational data (PDPA-protected).
+// We send bucketed/categorical versions to GA, never raw values.
+// See context/features/privacy.md §3 for the rule of thumb.
+
+function bucketScore(score: number): string {
+  if (score >= 90) return "90+"
+  if (score >= 80) return "80-89"
+  if (score >= 70) return "70-79"
+  if (score >= 60) return "60-69"
+  if (score >= 50) return "50-59"
+  if (score >= 40) return "40-49"
+  return "<40"
+}
+
+function bucketGap(gap: number): "far_above" | "above" | "close" | "below" | "far_below" {
+  if (gap >= 10) return "far_above"
+  if (gap >= 3) return "above"
+  if (gap >= -3) return "close"
+  if (gap >= -10) return "below"
+  return "far_below"
+}
+
 // ── Analyze events ────────────────────────────────────────────────────────────
 
 export function trackUniversitySelect(universityName: string) {
@@ -24,10 +47,10 @@ export function trackAnalyzeSubmit(params: {
   userScore:      number
 }) {
   sendGAEvent("event", "analyze_submit", {
-    university_name: params.universityName,
-    faculty_name:    params.facultyName,
-    has_weights:     params.hasWeights,
-    user_score:      Math.round(params.userScore * 10) / 10,
+    university_name:   params.universityName,
+    faculty_name:      params.facultyName,
+    has_weights:       params.hasWeights,
+    user_score_bucket: bucketScore(params.userScore),  // bucketed, not raw
   })
 }
 
@@ -39,11 +62,11 @@ export function trackAnalyzeResult(params: {
   userScore:      number
 }) {
   sendGAEvent("event", "analyze_result", {
-    university_name: params.universityName,
-    faculty_name:    params.facultyName,
-    chance:          params.chance,
-    gap:             Math.round(params.gap * 10) / 10,
-    user_score:      Math.round(params.userScore * 10) / 10,
+    university_name:   params.universityName,
+    faculty_name:      params.facultyName,
+    chance:            params.chance,
+    gap_direction:     bucketGap(params.gap),         // categorical, not raw
+    user_score_bucket: bucketScore(params.userScore), // bucketed, not raw
   })
 }
 

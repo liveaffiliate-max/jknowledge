@@ -2,12 +2,12 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { GoogleAnalytics } from "@next/third-parties/google"
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/toaster";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { PageTransition } from "@/components/layout/page-transition";
+import { AnalyticsLoader } from "@/components/analytics-loader";
+import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
 // Only the 5 weights actually used in the UI — WOFF2 format (-71% vs TTF)
@@ -48,10 +48,10 @@ export default function RootLayout({
             </PageTransition>
             <ScrollToTop />
             <BottomNav />
+            <CookieConsent />
           </Toaster>
         </body>
-        <GoogleAnalytics gaId="G-852N4SM4ND" />
-        <SpeedInsights />
+        <AnalyticsLoader gaId={process.env.NEXT_PUBLIC_GA_ID} />
       </html>
     </ClerkProvider>
   );
