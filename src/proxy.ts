@@ -3,7 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // Routes ที่ต้อง login — เพิ่มทีหลังได้
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
-  "/profile(.*)",
+  "/profile(.*)",   // custom profile page
 ]);
 
 export default clerkMiddleware(async (auth, request) => {

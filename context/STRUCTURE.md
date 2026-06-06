@@ -1,6 +1,6 @@
 # Project Structure — jknowledge
 
-> อัปเดตล่าสุด: 2026-05-27
+> อัปเดตล่าสุด: 2026-06-05
 
 ---
 
@@ -9,11 +9,11 @@
 **Stage: MVP กำลังพัฒนา**
 
 โปรเจกต์มี scaffold พร้อม features หลัก 3 อย่าง:
-- ✅ TCAS Score Analyzer (หน้า `/analyze`)
-- ✅ MBTI Recommendation System (หน้า `/mbti`)
-- ✅ Historical Score Browser (หน้า `/scores`)
-- ✅ Authentication ด้วย Clerk
-- ✅ Database schema ด้วย Prisma + PostgreSQL
+- ✅ TCAS Score Analyzer (หน้า `/analyze`) — ดู [`context/features/tcas-analysis.md`](features/tcas-analysis.md)
+- ✅ MBTI Recommendation System (หน้า `/mbti`) — ดู [`context/features/mbti.md`](features/mbti.md)
+- ✅ Historical Score Browser (หน้า `/scores`) — ดู [`context/features/history-score.md`](features/history-score.md)
+- ✅ Authentication (Clerk + OAuth 5 providers) — ดู [`context/features/auth.md`](features/auth.md)
+- ✅ Database schema ด้วย Prisma + PostgreSQL — ดู [`context/database.md`](database.md)
 - ✅ ข้อมูล TCAS ย้อนหลัง 64–69 (CSV files)
 
 ---
@@ -87,11 +87,16 @@ jknowledge/
 │   ├── features/
 │   │   ├── analyze/
 │   │   │   └── components/
-│   │   │       ├── analyze-form.tsx       ← Form กรอกคะแนน
+│   │   │       ├── analyze-form.tsx       ← Form กรอกคะแนน + Combobox มหาวิทยาลัย/คณะ
 │   │   │       ├── result-card.tsx        ← แสดงผลการวิเคราะห์
 │   │   │       ├── score-position-bar.tsx ← Bar แสดง position ของคะแนน
 │   │   │       ├── score-trend-chart.tsx  ← Recharts trend graph
 │   │   │       └── weighted-inputs.tsx    ← Input น้ำหนักวิชา
+│   │   ├── auth/                           ← ดู context/features/auth.md
+│   │   │   ├── icons.tsx                  ← Provider brand SVGs (Google/LINE/Apple/FB/X)
+│   │   │   └── components/
+│   │   │       ├── auth-shell.tsx         ← Card + header + footer toggle + divider
+│   │   │       └── oauth-buttons.tsx      ← OAuth provider button group
 │   │   └── mbti/
 │   │       └── components/
 │   │           ├── mbti-quiz.tsx          ← Quiz component
@@ -158,14 +163,20 @@ jknowledge/
 │   └── update-logos.ts              ← Update university logos
 │
 ├── context/
-│   ├── History_log/
-│   │   └── 2026-05-26.md            ← Session logs
+│   ├── History_log/                 ← Session logs (รายวัน YYYY-MM-DD.md)
+│   ├── UX/                          ← UX research + redesign notes
 │   ├── architecture.md              ← Architecture decisions
 │   ├── business-rules.md            ← Business logic rules
-│   ├── database.md                  ← Database notes
+│   ├── database.md                  ← Database changes log
 │   ├── features/
-│   │   ├── history-score.md
-│   │   └── tcas-analysis.md
+│   │   ├── auth.md                  ← Auth system (Clerk + OAuth + webhook + DB sync)
+│   │   ├── history-score.md         ← Historical TCAS score browser
+│   │   ├── mbti-core.md             ← MBTI scoring algorithm + 16 types
+│   │   ├── mbti.md                  ← MBTI quiz + faculty recommendation flow
+│   │   ├── privacy.md               ← Privacy/PDPA compliance guide + roadmap
+│   │   └── tcas-analysis.md         ← Score analyzer + admission probability
+│   ├── planning.md                  ← Active planning notes
+│   ├── progress.md                  ← Overall progress tracker
 │   └── roadmap/
 │       ├── mvp-roadmap.md
 │       └── roadmap_phase2.md
@@ -225,10 +236,15 @@ Enum:
 | `/` | `app/page.tsx` | Home page |
 | `/analyze` | `app/analyze/page.tsx` | TCAS Score Analyzer |
 | `/scores` | `app/scores/page.tsx` | Historical Score Browser |
-| `/mbti` | `app/mbti/page.tsx` | MBTI Quiz & Result |
-| `/sign-in` | Clerk UI | Authentication |
-| `/sign-up` | Clerk UI | Registration |
-| `/api/__clerk/[...path]` | Clerk proxy | Clerk backend route |
+| `/scores/[uni]` | `app/scores/[universitySlug]/page.tsx` | Faculty list ของมหาวิทยาลัย |
+| `/scores/[uni]/[fac]` | `app/scores/[universitySlug]/[facultySlug]/page.tsx` | Score detail + trend |
+| `/mbti` | `app/mbti/page.tsx` | MBTI Quiz |
+| `/mbti/[type]` | `app/mbti/[type]/page.tsx` | MBTI result + คณะแนะนำ (SSG) |
+| `/dashboard` | `app/dashboard/page.tsx` | ประวัติการวิเคราะห์ (protected) |
+| `/sign-in` | Custom UI (Clerk Future API + OAuth) | ดู [`features/auth.md`](features/auth.md) |
+| `/sign-up` | Custom UI (Clerk Future API + OAuth) | ดู [`features/auth.md`](features/auth.md) |
+| `/__clerk/[...path]` | Frontend API proxy | First-party cookie domain |
+| `/api/webhooks/clerk` | Webhook handler | User lifecycle → DB sync (Svix verified) |
 
 ---
 
@@ -291,11 +307,11 @@ npx tsx scripts/update-logos.ts
 2. ✅ shadcn/ui (v4.8.0, Tailwind v4)
 3. ✅ Folder structure (features/, components/, lib/, etc.)
 4. ✅ TCAS Score Calculator / Analyzer
-5. ✅ Authentication (Clerk)
+5. ✅ Authentication (Clerk + OAuth: Google/LINE/Apple/Facebook/X) — [`features/auth.md`](features/auth.md)
 6. ✅ Historical Score Database schema (Prisma)
-7. ✅ MBTI System (basic)
-8. ⬜ Admission Prediction (AI-assisted)
-9. ⬜ Dashboard (user history)
+7. ✅ MBTI System (16 types + faculty matching)
+8. ✅ Admission Prediction (chance + gap calculation)
+9. ✅ Dashboard (user history, protected route)
 10. ⬜ AI Advisor
 11. ⬜ SEO Pages
 12. ⬜ Community Features
