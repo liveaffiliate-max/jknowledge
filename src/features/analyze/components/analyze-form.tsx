@@ -103,6 +103,31 @@ function writePersisted(state: PersistedState | null) {
   }
 }
 
+// ── Pending history (anonymous → signed-in migration) ────────────────────────
+// After a guest analysis, store the result here. Sign-up page reads + saves it.
+
+const PENDING_KEY = "jknowledge:pending-save:v1"
+
+type PendingHistory = { facultyId: string; userScore: number }
+
+export function writePendingHistory(data: PendingHistory) {
+  if (typeof window === "undefined") return
+  try { window.sessionStorage.setItem(PENDING_KEY, JSON.stringify(data)) } catch { /* noop */ }
+}
+
+export function readPendingHistory(): PendingHistory | null {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.sessionStorage.getItem(PENDING_KEY)
+    return raw ? (JSON.parse(raw) as PendingHistory) : null
+  } catch { return null }
+}
+
+export function clearPendingHistory() {
+  if (typeof window === "undefined") return
+  try { window.sessionStorage.removeItem(PENDING_KEY) } catch { /* noop */ }
+}
+
 // ── Recent universities (localStorage, cross-session) ─────────────────────────
 // Surfaces the user's last few picks as quick-pick chips above the dropdown.
 // localStorage (not sessionStorage) so a returning user tomorrow still sees them.
@@ -585,6 +610,8 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
         return
       }
       setResult(analyzed)
+      // Store for anonymous → signed-in migration (cleared after sign-up saves it)
+      writePendingHistory({ facultyId, userScore: analyzed.userScore })
       trackAnalyzeResult({
         universityName,
         facultyName: analyzed.faculty.name,

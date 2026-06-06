@@ -248,6 +248,37 @@ export const getFacultyWithScores = unstable_cache(
   { revalidate: 1800, tags: ["faculties", "tcas-scores"] }
 )
 
+// ── Profile stats ─────────────────────────────────────────────────────────────
+
+export type ProfileStats = {
+  totalAnalyses: number
+  highChanceCount: number
+  firstAnalysisAt: Date | null
+  joinedAt: Date | null
+}
+
+export async function getProfileStats(clerkId: string): Promise<ProfileStats> {
+  const user = await prisma.user.findUnique({ where: { clerkId } })
+  if (!user) return { totalAnalyses: 0, highChanceCount: 0, firstAnalysisAt: null, joinedAt: null }
+
+  const [total, highChance, first] = await Promise.all([
+    prisma.predictionHistory.count({ where: { userId: user.id } }),
+    prisma.predictionHistory.count({ where: { userId: user.id, chance: "high" } }),
+    prisma.predictionHistory.findFirst({
+      where:   { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select:  { createdAt: true },
+    }),
+  ])
+
+  return {
+    totalAnalyses:   total,
+    highChanceCount: highChance,
+    firstAnalysisAt: first?.createdAt ?? null,
+    joinedAt:        user.createdAt,
+  }
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export type PredictionHistoryItem = {

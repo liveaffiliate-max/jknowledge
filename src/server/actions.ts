@@ -6,6 +6,39 @@ import { calculateAdmissionChance, calculateTrend } from "@/utils/analyze"
 import { prisma } from "@/lib/prisma"
 import type { AdmissionResult, Faculty, RequirementData } from "@/types/tcas"
 
+// ── Save an analysis result that was done while anonymous (called after sign-up) ─
+
+export async function savePendingHistoryAction(
+  facultyId: string,
+  userScore: number
+): Promise<void> {
+  if (!facultyId || isNaN(userScore)) return
+
+  try {
+    const { userId: clerkId } = await auth()
+    if (!clerkId) return
+
+    const faculty = await getFacultyWithScores(facultyId)
+    if (!faculty || faculty.scores.length === 0) return
+
+    const sorted = [...faculty.scores].sort((a, b) => b.year - a.year)
+    const latest = sorted[0]
+    const chance = calculateAdmissionChance(userScore, latest.minScore, latest.avgScore)
+    const gap    = userScore - latest.minScore
+
+    const user = await prisma.user.upsert({
+      where:  { clerkId },
+      update: {},
+      create: { clerkId },
+    })
+    await prisma.predictionHistory.create({
+      data: { userId: user.id, facultyId, userScore, chance, gap },
+    })
+  } catch {
+    // Don't surface errors — this is best-effort migration
+  }
+}
+
 // ── Get faculties for a university (called when user picks university) ─────────
 
 export async function fetchFacultiesAction(

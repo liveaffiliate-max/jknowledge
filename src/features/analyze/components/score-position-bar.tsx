@@ -92,20 +92,20 @@ export function ScorePositionBar({
           </span>
         </div>
 
-        {/* avgScore marker — label pinned right if near edge */}
+        {/* avgScore marker — label pinned below to avoid colliding with minScore label above */}
         <div
           className="absolute top-0 h-full w-0.5 bg-yellow-500"
           style={{ left: `${avgPct}%` }}
         >
           <span
-            className="absolute -top-5 whitespace-nowrap text-xs text-yellow-600"
+            className="absolute -bottom-5 whitespace-nowrap text-xs text-yellow-600"
             style={{
               right: avgPct > 85 ? "0" : "auto",
               left: avgPct > 85 ? "auto" : avgPct < 15 ? "0" : "50%",
               transform: avgPct > 85 || avgPct < 15 ? "none" : "translateX(-50%)",
             }}
           >
-            เฉลี่ย {avgScore.toFixed(0)}
+            คะแนนเฉลี่ย {avgScore.toFixed(0)}
           </span>
         </div>
 
