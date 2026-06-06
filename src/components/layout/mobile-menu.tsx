@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X } from "lucide-react"
-import { Show, UserButton } from "@clerk/nextjs"
+import { Show } from "@clerk/nextjs"
+import { ProfileAvatarLink } from "./profile-avatar-link"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -26,15 +27,7 @@ export function MobileMenu({ links }: MobileMenuProps) {
       {/* Trigger row: mobile UserButton + hamburger */}
       <div className="flex items-center gap-2">
         <Show when="signed-in">
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "h-8 w-8 ring-2 ring-green-600 ring-offset-1 ring-offset-white",
-                userButtonPopoverCard: "shadow-xl border border-border rounded-xl overflow-hidden",
-                userButtonPopoverFooter: "hidden",
-              },
-            }}
-          />
+          <ProfileAvatarLink size={32} />
         </Show>
         <button
           className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"

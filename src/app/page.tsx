@@ -57,7 +57,7 @@ export default function HomePage() {
                 "w-full bg-green-600 hover:bg-green-700 text-white sm:w-auto"
               )}
             >
-              เริ่มวิเคราะห์คะแนน
+              เช็กโอกาสติดของฉัน
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </Link>
             <Link
@@ -127,7 +127,7 @@ export default function HomePage() {
           </FadeIn>
 
           <FadeIn delay={200}>
-            <p className="mt-8 text-xs text-gray-400">อ้างอิงจาก mytcas</p>
+            <p className="mt-8 text-xs text-gray-400">อ้างอิงข้อมูลจากเว็บไซต์ mytcas</p>
           </FadeIn>
         </div>
       </section>
@@ -215,7 +215,7 @@ export default function HomePage() {
               "flex-shrink-0 bg-green-600 text-white hover:bg-green-700"
             )}
           >
-            เริ่มวิเคราะห์คะแนน
+            เช็กโอกาสติดของฉัน
             <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
           </Link>
         </div>

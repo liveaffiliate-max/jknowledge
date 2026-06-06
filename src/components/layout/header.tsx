@@ -5,8 +5,9 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Show, UserButton } from "@clerk/nextjs"
+import { Show } from "@clerk/nextjs"
 import { MobileMenu } from "./mobile-menu"
+import { ProfileAvatarLink } from "./profile-avatar-link"
 
 const NAV_LINKS = [
   { href: "/analyze", label: "วิเคราะห์คะแนน" },
@@ -80,21 +81,7 @@ export default function Header() {
               </Link>
             </Show>
             <Show when="signed-in">
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: "h-9 w-9 ring-2 ring-green-600 ring-offset-2 ring-offset-white",
-                    userButtonPopoverCard: "shadow-xl border border-border rounded-xl overflow-hidden",
-                    userButtonPopoverHeader: "border-b border-border pb-3",
-                    userPreviewMainIdentifier: "font-semibold text-foreground text-sm",
-                    userPreviewSecondaryIdentifier: "text-muted-foreground text-xs",
-                    userButtonPopoverActionButton: "rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors",
-                    userButtonPopoverActionButtonIcon: "text-muted-foreground",
-                    userButtonPopoverActionButtonText: "text-sm font-medium",
-                    userButtonPopoverFooter: "hidden",
-                  },
-                }}
-              />
+              <ProfileAvatarLink size={36} />
             </Show>
           </div>
 
