@@ -91,6 +91,8 @@ model TcasScore {
 
   @@unique([facultyId, year, round])
   @@index([programCode])
+  // Speeds up getLatestTcasYear() aggregate + getMinScoresLatest() ORDER BY minScore
+  @@index([year, minScore])
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -117,6 +119,9 @@ model PredictionHistory {
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   faculty Faculty @relation(fields: [facultyId], references: [id], onDelete: Cascade)
+
+  // Dashboard + profile stats queries all filter by userId; createdAt drives ORDER BY
+  @@index([userId, createdAt])
 }
 
 enum AdmissionChance {

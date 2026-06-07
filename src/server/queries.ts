@@ -126,11 +126,10 @@ export const getUniversityBySlug = unstable_cache(
 /** /scores/[uniSlug] — faculty list with latest score only (not all historical scores) */
 export const getFacultiesByUniSlug = unstable_cache(
   async (uniSlug: string): Promise<FacultyPreview[]> => {
-    const uni = await prisma.university.findUnique({ where: { slug: uniSlug } })
-    if (!uni) return []
-
+    // Filter by relation in a single roundtrip instead of doing
+    // findUnique(uni) → findMany(faculty).
     const rows = await prisma.faculty.findMany({
-      where: { universityId: uni.id },
+      where:   { university: { slug: uniSlug } },
       orderBy: { name: "asc" },
       include: {
         scores: { orderBy: { year: "desc" }, take: 1 },
@@ -258,12 +257,23 @@ export type ProfileStats = {
 }
 
 export async function getProfileStats(clerkId: string): Promise<ProfileStats> {
-  const user = await prisma.user.findUnique({ where: { clerkId } })
+  // Single roundtrip: pull the user, their createdAt, and an aggregate of
+  // their predictions in one parallel batch. Avoids the previous 4-query chain
+  // (findUnique → 2× count → findFirst).
+  const user = await prisma.user.findUnique({
+    where:  { clerkId },
+    select: { id: true, createdAt: true },
+  })
   if (!user) return { totalAnalyses: 0, highChanceCount: 0, firstAnalysisAt: null, joinedAt: null }
 
-  const [total, highChance, first] = await Promise.all([
-    prisma.predictionHistory.count({ where: { userId: user.id } }),
-    prisma.predictionHistory.count({ where: { userId: user.id, chance: "high" } }),
+  // One groupBy gets both total and per-chance counts in a single query.
+  // Parallel with firstAnalysisAt for minimum wall-clock time.
+  const [grouped, first] = await Promise.all([
+    prisma.predictionHistory.groupBy({
+      by:      ["chance"],
+      where:   { userId: user.id },
+      _count:  { _all: true },
+    }),
     prisma.predictionHistory.findFirst({
       where:   { userId: user.id },
       orderBy: { createdAt: "asc" },
@@ -271,11 +281,98 @@ export async function getProfileStats(clerkId: string): Promise<ProfileStats> {
     }),
   ])
 
+  let total = 0
+  let highChance = 0
+  for (const g of grouped) {
+    total += g._count._all
+    if (g.chance === "high") highChance = g._count._all
+  }
+
   return {
     totalAnalyses:   total,
     highChanceCount: highChance,
     firstAnalysisAt: first?.createdAt ?? null,
     joinedAt:        user.createdAt,
+  }
+}
+
+// ── Min-scores landing page ───────────────────────────────────────────────────
+
+export type MinScoreEntry = {
+  facultyId:     string
+  facultyName:   string
+  program:       string
+  majorName:     string | null
+  field:         string
+  minScore:      number
+  year:          number
+  universitySlug: string
+  universityName: string
+  universityShortName: string
+}
+
+/** Lowest TCAS cutoff per faculty for the latest year — for SEO landing page */
+export const getMinScoresLatest = unstable_cache(
+  async (limit = 500): Promise<MinScoreEntry[]> => {
+    const latestYear = await getLatestTcasYear()
+    if (!latestYear) return []
+
+    const rows = await prisma.tcasScore.findMany({
+      where:   { year: latestYear, minScore: { gt: 0 } },
+      orderBy: { minScore: "asc" },
+      take:    limit,
+      include: {
+        faculty: {
+          select: {
+            id: true, name: true, program: true, majorName: true, field: true,
+            university: { select: { slug: true, name: true, shortName: true } },
+          },
+        },
+      },
+    })
+
+    return rows.map((r) => ({
+      facultyId:           r.faculty.id,
+      facultyName:         r.faculty.name,
+      program:             normalizeProgram(r.faculty.program),
+      majorName:           normalizeMajor(r.faculty.majorName) || null,
+      field:               r.faculty.field as string,
+      minScore:            r.minScore,
+      year:                r.year,
+      universitySlug:      r.faculty.university.slug,
+      universityName:      r.faculty.university.name,
+      universityShortName: r.faculty.university.shortName,
+    }))
+  },
+  ["min-scores-latest"],
+  { revalidate: 3600, tags: ["tcas-scores"] }
+)
+
+// ── Latest MBTI for a user ────────────────────────────────────────────────────
+
+export async function getLatestMBTIForUser(clerkId: string): Promise<{
+  type: string
+  nickname: string
+  emoji: string
+  color: string
+  takenAt: Date
+} | null> {
+  const user = await prisma.user.findUnique({ where: { clerkId } })
+  if (!user) return null
+
+  const result = await prisma.mBTIResult.findFirst({
+    where:   { userId: user.id },
+    orderBy: { createdAt: "desc" },
+    include: { profile: { select: { nickname: true, emoji: true, color: true } } },
+  })
+  if (!result) return null
+
+  return {
+    type:     result.mbtiType,
+    nickname: result.profile.nickname,
+    emoji:    result.profile.emoji,
+    color:    result.profile.color,
+    takenAt:  result.createdAt,
   }
 }
 
@@ -297,26 +394,30 @@ export type PredictionHistoryItem = {
   }
 }
 
-// Not cached — user-specific, changes on each prediction
+// Not cached — user-specific, changes on each prediction.
+// Single nested query: get the user and their 20 latest predictions in 1 roundtrip.
 export async function getDashboardHistory(clerkId: string): Promise<PredictionHistoryItem[]> {
-  const user = await prisma.user.findUnique({ where: { clerkId } })
-  if (!user) return []
-
-  const rows = await prisma.predictionHistory.findMany({
-    where:   { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    take:    20,
-    include: {
-      faculty: {
+  const user = await prisma.user.findUnique({
+    where:  { clerkId },
+    select: {
+      predictions: {
+        take:    20,
+        orderBy: { createdAt: "desc" },
         select: {
-          id: true, name: true, program: true, majorName: true, detail: true,
-          university: { select: { name: true, slug: true, color: true } },
+          id: true, userScore: true, chance: true, gap: true, createdAt: true,
+          faculty: {
+            select: {
+              id: true, name: true, program: true, majorName: true, detail: true,
+              university: { select: { name: true, slug: true, color: true } },
+            },
+          },
         },
       },
     },
   })
+  if (!user) return []
 
-  return rows.map((r) => ({
+  return user.predictions.map((r) => ({
     id:        r.id,
     userScore: r.userScore,
     chance:    r.chance as "high" | "competitive" | "low",

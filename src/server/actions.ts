@@ -1,6 +1,7 @@
 "use server"
 
 import { auth } from "@clerk/nextjs/server"
+import { revalidatePath } from "next/cache"
 import { getFacultiesByUniversityId, getFacultyRequirement, getFacultyWithScores } from "./queries"
 import { calculateAdmissionChance, calculateTrend } from "@/utils/analyze"
 import { prisma } from "@/lib/prisma"
@@ -34,9 +35,68 @@ export async function savePendingHistoryAction(
     await prisma.predictionHistory.create({
       data: { userId: user.id, facultyId, userScore, chance, gap },
     })
+    revalidatePath("/dashboard")
+    revalidatePath("/profile")
   } catch {
     // Don't surface errors — this is best-effort migration
   }
+}
+
+// ── Delete account (called from Profile, before Clerk user.delete) ───────────
+//
+// Wipes the user's rows from our DB. Caller is responsible for revoking the
+// Clerk account on the client (via user.delete()) and signing out.
+
+export async function deleteAccountAction(): Promise<{ ok: boolean }> {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) return { ok: false }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { clerkId } })
+    if (!user) {
+      // No DB rows existed — nothing to wipe, treat as success
+      return { ok: true }
+    }
+
+    // Cascading deletes on PredictionHistory + MBTIResult via FK onDelete: Cascade
+    // (PredictionHistory already cascades; MBTIResult.userId has no cascade,
+    // so we explicitly unlink it instead of deleting MBTI history — they're anonymous data points)
+    await prisma.$transaction([
+      prisma.predictionHistory.deleteMany({ where: { userId: user.id } }),
+      prisma.mBTIResult.updateMany({ where: { userId: user.id }, data: { userId: null } }),
+      prisma.user.delete({ where: { id: user.id } }),
+    ])
+
+    revalidatePath("/dashboard")
+    revalidatePath("/profile")
+    return { ok: true }
+  } catch {
+    return { ok: false }
+  }
+}
+
+// ── Delete a prediction (called from Dashboard) ───────────────────────────────
+
+export async function deletePredictionAction(predictionId: string): Promise<{ ok: boolean }> {
+  if (!predictionId) return { ok: false }
+
+  const { userId: clerkId } = await auth()
+  if (!clerkId) return { ok: false }
+
+  const user = await prisma.user.findUnique({ where: { clerkId } })
+  if (!user) return { ok: false }
+
+  // Verify ownership before deleting
+  const prediction = await prisma.predictionHistory.findUnique({
+    where:  { id: predictionId },
+    select: { userId: true },
+  })
+  if (!prediction || prediction.userId !== user.id) return { ok: false }
+
+  await prisma.predictionHistory.delete({ where: { id: predictionId } })
+  revalidatePath("/dashboard")
+  revalidatePath("/profile")
+  return { ok: true }
 }
 
 // ── Get faculties for a university (called when user picks university) ─────────
@@ -87,6 +147,8 @@ export async function analyzeAction(
       await prisma.predictionHistory.create({
         data: { userId: user.id, facultyId, userScore, chance, gap },
       })
+      revalidatePath("/dashboard")
+      revalidatePath("/profile")
     }
   } catch {
     // ไม่ block ผลลัพธ์ถ้า save ไม่ได้
