@@ -204,20 +204,30 @@ export default function HomePage() {
 
       {/* Footer + CTA */}
       <footer className="border-t border-gray-100 bg-white px-4 py-6">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
-          <p className="text-sm text-gray-400">
-            © 2026 Jknowledge · อ้างอิงจาก mytcas · เป็นการประมาณการ ไม่ใช่ผลรับประกัน
-          </p>
-          <Link
-            href="/analyze"
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              "flex-shrink-0 bg-green-600 text-white hover:bg-green-700"
-            )}
-          >
-            เช็กโอกาสติดของฉัน
-            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-          </Link>
+        <div className="mx-auto max-w-6xl space-y-4">
+          <nav aria-label="Footer links" className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
+            <Link href="/tcas/calculator"  className="hover:text-green-700">TCAS Calculator</Link>
+            <Link href="/tcas/min-scores"  className="hover:text-green-700">คะแนนต่ำสุด TCAS</Link>
+            <Link href="/scores"           className="hover:text-green-700">คะแนนย้อนหลัง</Link>
+            <Link href="/mbti"             className="hover:text-green-700">MBTI คณะ</Link>
+            <Link href="/privacy"          className="hover:text-green-700">ความเป็นส่วนตัว</Link>
+            <Link href="/terms"            className="hover:text-green-700">เงื่อนไข</Link>
+          </nav>
+          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <p className="text-sm text-gray-400">
+              © 2026 Jknowledge · อ้างอิงจาก mytcas · เป็นการประมาณการ ไม่ใช่ผลรับประกัน
+            </p>
+            <Link
+              href="/analyze"
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "flex-shrink-0 bg-green-600 text-white hover:bg-green-700"
+              )}
+            >
+              เช็กโอกาสติดของฉัน
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
