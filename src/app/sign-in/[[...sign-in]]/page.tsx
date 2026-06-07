@@ -10,6 +10,7 @@ import { AuthShell, AuthDivider } from "@/features/auth/components/auth-shell"
 import { OAuthButtons } from "@/features/auth/components/oauth-buttons"
 import { readPendingHistory, clearPendingHistory } from "@/features/analyze/components/analyze-form"
 import { savePendingHistoryAction } from "@/server/actions"
+import { claimAnonymousMBTIResult } from "@/lib/mbti-claim"
 
 type Step = "credentials" | "mfa"
 type MFAMode = "email" | "backup"
@@ -66,6 +67,8 @@ export default function SignInPage() {
           await savePendingHistoryAction(pending.facultyId, pending.userScore)
           clearPendingHistory()
         }
+        // Claim an anonymous MBTI result if the user took the quiz before signing in
+        await claimAnonymousMBTIResult()
 
         const dest = session?.currentTask ? `/sign-in/tasks/${session.currentTask.key}` : "/"
         const url = decorateUrl(dest)

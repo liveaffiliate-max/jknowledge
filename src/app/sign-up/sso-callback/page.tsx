@@ -11,6 +11,7 @@ import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { readPendingHistory, clearPendingHistory } from "@/features/analyze/components/analyze-form"
 import { savePendingHistoryAction } from "@/server/actions"
+import { claimAnonymousMBTIResult } from "@/lib/mbti-claim"
 
 export default function SignUpSSOCallback() {
   const { signUp, fetchStatus } = useSignUp()
@@ -29,6 +30,8 @@ export default function SignUpSSOCallback() {
             await savePendingHistoryAction(pending.facultyId, pending.userScore)
             clearPendingHistory()
           }
+          // Claim an anonymous MBTI result if the user took the quiz before signing up
+          await claimAnonymousMBTIResult()
 
           const url = decorateUrl("/")
           if (url.startsWith("http")) window.location.href = url

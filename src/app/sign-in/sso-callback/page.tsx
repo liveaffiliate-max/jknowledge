@@ -11,6 +11,9 @@ import { useSignIn } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import { readPendingHistory, clearPendingHistory } from "@/features/analyze/components/analyze-form"
+import { savePendingHistoryAction } from "@/server/actions"
+import { claimAnonymousMBTIResult } from "@/lib/mbti-claim"
 
 export default function SignInSSOCallback() {
   const { signIn, fetchStatus } = useSignIn()
@@ -23,7 +26,17 @@ export default function SignInSSOCallback() {
 
     if (signIn.status === "complete") {
       signIn.finalize({
-        navigate: ({ decorateUrl }) => {
+        navigate: async ({ decorateUrl }) => {
+          // Migrate any analysis the user did while anonymous
+          try {
+            const pending = readPendingHistory()
+            if (pending) {
+              await savePendingHistoryAction(pending.facultyId, pending.userScore)
+              clearPendingHistory()
+            }
+            await claimAnonymousMBTIResult()
+          } catch { /* best effort */ }
+
           const url = decorateUrl("/")
           if (url.startsWith("http")) window.location.href = url
           else router.push(url)

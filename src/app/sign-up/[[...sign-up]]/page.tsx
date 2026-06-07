@@ -9,6 +9,7 @@ import { AuthShell, AuthDivider } from "@/features/auth/components/auth-shell"
 import { OAuthButtons } from "@/features/auth/components/oauth-buttons"
 import { readPendingHistory, clearPendingHistory } from "@/features/analyze/components/analyze-form"
 import { savePendingHistoryAction } from "@/server/actions"
+import { claimAnonymousMBTIResult } from "@/lib/mbti-claim"
 
 type Step      = "details" | "verify"
 type Direction = "forward" | "back"
@@ -78,6 +79,7 @@ export default function SignUpPage() {
           await savePendingHistoryAction(pending.facultyId, pending.userScore)
           clearPendingHistory()
         }
+        await claimAnonymousMBTIResult()
         const dest = session?.currentTask ? `/sign-up/tasks/${session.currentTask.key}` : "/"
         const url  = decorateUrl(dest)
         if (url.startsWith("http")) window.location.href = url

@@ -2,12 +2,13 @@ import { auth, currentUser } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import Header from "@/components/layout/header"
-import { getProfileStats } from "@/server/queries"
+import { getProfileStats, getLatestMBTIForUser } from "@/server/queries"
 import { AvatarUpload } from "./_components/avatar-upload"
 import { EditNameForm }  from "./_components/edit-name-form"
 import { SignOutButton } from "./_components/sign-out-button"
+import { DeleteAccountButton } from "./_components/delete-account-button"
 import {
-  BarChart2, KeyRound, Mail, CalendarDays, TrendingUp,
+  BarChart2, KeyRound, Mail, CalendarDays, TrendingUp, Brain,
 } from "lucide-react"
 import type { Metadata } from "next"
 
@@ -26,9 +27,10 @@ export default async function ProfilePage() {
   const { userId: clerkId } = await auth()
   if (!clerkId) redirect("/sign-in")
 
-  const [user, stats] = await Promise.all([
+  const [user, stats, mbti] = await Promise.all([
     currentUser(),
     getProfileStats(clerkId),
+    getLatestMBTIForUser(clerkId),
   ])
   if (!user) redirect("/sign-in")
 
@@ -83,6 +85,36 @@ export default async function ProfilePage() {
           </div>
         </div>
 
+        {/* ── MBTI badge ── */}
+        {mbti ? (
+          <Link
+            href={`/mbti/${mbti.type.toLowerCase()}`}
+            className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4 transition-all hover:border-green-200 hover:shadow-sm"
+          >
+            <span className="flex items-center gap-3">
+              <span className="text-2xl" aria-hidden>{mbti.emoji}</span>
+              <span className="flex flex-col">
+                <span className="text-sm font-semibold text-gray-900">
+                  {mbti.type} · {mbti.nickname}
+                </span>
+                <span className="text-xs text-gray-400">บุคลิกของคุณ</span>
+              </span>
+            </span>
+            <span className="text-gray-300">→</span>
+          </Link>
+        ) : (
+          <Link
+            href="/mbti"
+            className="flex items-center justify-between rounded-2xl border border-dashed border-gray-200 bg-white px-5 py-4 text-sm font-medium text-gray-600 transition-all hover:border-green-300 hover:bg-green-50/40"
+          >
+            <span className="flex items-center gap-2.5">
+              <Brain className="h-4 w-4 text-green-600" />
+              ทำ MBTI เพื่อรับคำแนะนำคณะ
+            </span>
+            <span className="text-gray-300">→</span>
+          </Link>
+        )}
+
         {/* ── Edit name ── */}
         <section className="rounded-2xl border border-gray-200 bg-white p-6">
           <h2 className="mb-4 text-sm font-semibold text-gray-700">ข้อมูลส่วนตัว</h2>
@@ -108,6 +140,11 @@ export default async function ProfilePage() {
           </Link>
           <div className="mx-4 h-px bg-gray-100" />
           <SignOutButton />
+        </section>
+
+        {/* ── Danger zone ── */}
+        <section className="rounded-2xl border border-red-100 bg-white p-2">
+          <DeleteAccountButton />
         </section>
 
         {/* ── Quick links ── */}
