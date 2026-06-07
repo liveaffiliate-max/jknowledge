@@ -55,9 +55,9 @@ export function UniversityLogo({
         src={getUniversityLogoUrl(slug)}
         alt={`${shortName} logo`}
         fill
+        sizes="48px"
         className="object-contain p-1"
         onError={() => setError(true)}
-        unoptimized
       />
     </div>
   )

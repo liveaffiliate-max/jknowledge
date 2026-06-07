@@ -29,7 +29,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export const dynamic = "force-dynamic"
+// Underlying query (getFacultyWithScores) is cached for 1800s — let the page
+// participate in the cache too so we don't pay full DB cost on every visit.
+export const revalidate = 1800
 
 export default async function FacultyScorePage({ params }: Props) {
   const { universitySlug, facultySlug: facultyId } = await params
