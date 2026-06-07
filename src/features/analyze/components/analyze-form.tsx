@@ -1,7 +1,9 @@
 "use client"
 
 import { useState, useTransition, useMemo, useEffect, useCallback } from "react"
+import { useAuth } from "@clerk/nextjs"
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox"
+import { useToast } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ResultCard } from "./result-card"
@@ -435,6 +437,9 @@ const facultySearchString = (f: FacultyOption) =>
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
+  const { isSignedIn } = useAuth()
+  const { toast }      = useToast()
+
   // ── Selection state ──────────────────────────────────────────────
   const [universityId,   setUniversityId]   = useState("")
   const [universityName, setUniversityName] = useState("")
@@ -610,8 +615,14 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
         return
       }
       setResult(analyzed)
-      // Store for anonymous → signed-in migration (cleared after sign-up saves it)
-      writePendingHistory({ facultyId, userScore: analyzed.userScore })
+      if (isSignedIn) {
+        // Server already persisted to PredictionHistory; tell the user it's saved.
+        toast("บันทึกลง Dashboard แล้ว", "success")
+        clearPendingHistory()
+      } else {
+        // Store for anonymous → signed-in migration (cleared after sign-up saves it)
+        writePendingHistory({ facultyId, userScore: analyzed.userScore })
+      }
       trackAnalyzeResult({
         universityName,
         facultyName: analyzed.faculty.name,

@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import { CHANCE_CONFIG } from "@/utils/analyze"
 import { ScoreTrendChartLazy as ScoreTrendChart } from "./score-trend-chart-lazy"
 import { ScorePositionBar } from "./score-position-bar"
+import { ShareResultButton } from "./share-result-button"
 import type { AdmissionResult } from "@/types/tcas"
 import {
   TrendingUp,
@@ -113,6 +114,9 @@ export function ResultCard({ result, onReset }: ResultCardProps) {
           <AlertTriangle className="h-3 w-3 flex-shrink-0" />
           ผลนี้เป็นการประมาณการจากข้อมูลย้อนหลัง ไม่รับประกันการรับเข้า
         </p>
+
+        {/* ── Share ── */}
+        <ShareResultButton result={result} />
 
         {/* ── Compare CTA ── */}
         {onReset && (
