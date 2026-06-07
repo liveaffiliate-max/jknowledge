@@ -1,10 +1,10 @@
 # Project Progress Report
 
-อัปเดตล่าสุด: 2026-06-01
+อัปเดตล่าสุด: 2026-06-06
 
 ---
 
-## ภาพรวม: ~52% complete
+## ภาพรวม: ~80% complete
 
 ---
 
@@ -12,14 +12,14 @@
 
 | Priority | Feature | Status | % |
 |---|---|---|---|
-| 1 | TCAS Score Calculator | ✅ Done | 85% |
-| 2 | Authentication | 🟡 Partial | 55% |
-| 3 | Historical Score DB | ✅ Done | 90% |
-| 4 | Admission Prediction | 🟡 Partial | 65% |
-| 5 | Dashboard | ❌ Not started | 0% |
+| 1 | TCAS Score Calculator | ✅ Done | 90% |
+| 2 | Authentication | ✅ Done | 90% |
+| 3 | Historical Score DB | ✅ Done | 95% |
+| 4 | Admission Prediction | ✅ Done | 85% |
+| 5 | Dashboard | ✅ Done | 85% |
 | 6 | MBTI System | ✅ Done | 80% |
-| 7 | AI Advisor | ❌ Not started | 0% |
-| 8 | SEO Pages | 🟡 Partial | 30% |
+| 7 | AI Advisor | ⏸️ On hold | 0% |
+| 8 | SEO Pages | ✅ Done | 75% |
 | 9 | Community Features | ❌ Not started | 0% |
 
 ---
@@ -57,8 +57,8 @@
 ### Data & Database
 - Schema ครบ: University, Faculty, TcasScore, FacultyRequirement, User, PredictionHistory, MBTI models
 - Data import pipeline: `import-tcas.ts` + programCode-based identity + COTMES fix
-- ข้อมูลสะอาด: **4,683 Faculty / 14,099 TcasScore / 0 duplicates**
-- FacultyRequirement restored: 5,338 / 6,612 records
+- ข้อมูลสะอาด: **8,814 Faculty / 23,393 TcasScore (TCAS64–69) / 0 duplicates**
+- FacultyRequirement: **7,412 clean records** (weights TCAS69 จาก mytcas rounds API)
 - Dedupe scripts + verification scripts
 
 ### Infrastructure
@@ -73,9 +73,9 @@
 ## สิ่งที่ยังขาด (ก่อน MVP)
 
 ### Critical
-- **Dashboard page** — ผู้ใช้ไม่มีที่ดูประวัติการวิเคราะห์คะแนน
-- **Prediction saving** — model `PredictionHistory` มีใน schema แต่ยังไม่ถูก wire กับ UI
-- **FacultyRequirement ขาด 1,274 records** — การคำนวณน้ำหนักคะแนนไม่สมบูรณ์สำหรับ faculty กลุ่มนี้
+- ~~Dashboard page~~ — ✅ เสร็จแล้ว (2026-06-06): list + sort + delete + revalidate
+- ~~Prediction saving~~ — ✅ wired ใน `analyzeAction` พร้อม toast confirm + anonymous→signed-in migration ครบทุก auth flow
+- **FacultyRequirement ขาด ~1,402 faculties** — เป็น faculty TCAS64–67 ที่ปิดไปแล้ว / mytcas ไม่มี data ให้ ✅ UI มี fallback (fallbackScore input) ทำงานอยู่
 
 ### Important
 - **AI Advisor** — feature หลักที่ยังไม่ได้เริ่ม (วิเคราะห์จุดแข็ง/แนะนำคณะสำรอง)
@@ -99,4 +99,4 @@
 | TCAS66 | 2566 | ✅ |
 | TCAS67 | 2567 | ✅ |
 | TCAS68 | 2568 | ✅ |
-| TCAS69 | 2569 | 🟡 ไฟล์มีแล้ว (`TCAS69-R3-MinMax-25May26`) ยังไม่ import |
+| TCAS69 | 2569 | ✅ 6,989 records (import 2026-05-28) |
