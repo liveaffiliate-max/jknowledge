@@ -35,10 +35,11 @@ export default async function ScoresPage() {
               มหาวิทยาลัย
             </p>
             <div className="mt-4 ml-12 flex flex-wrap gap-2">
-              {[64, 65, 66, 67, 68, 69].map((y) => (
+              {[64, 65, 66, 67, 68, 69].map((y, i) => (
                 <span
                   key={y}
-                  className="rounded-full bg-green-50 border border-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
+                  style={{ "--i": i } as React.CSSProperties}
+                  className="motion-safe:animate-chip-enter rounded-full bg-green-50 border border-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
                 >
                   TCAS{y}
                 </span>

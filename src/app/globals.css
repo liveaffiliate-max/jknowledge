@@ -214,6 +214,28 @@
   to   { transform: scaleX(1); }
 }
 
+/* Card entrance — used in /scores grid + similar list surfaces.
+   Pair with `style={{ "--i": index }}` and cap the index server-side
+   (e.g. Math.min(i, 8)) so the total stagger budget stays under ~400ms
+   regardless of list length. */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Chip / pill entrance — short, snappier than cards, used for
+   metadata rows like the TCAS year chips on /scores. */
+@keyframes chip-enter {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Idle breathing — for empty-state icons. Subtle, 3s loop. */
+@keyframes idle-breathe {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%      { transform: scale(1.06); opacity: 0.85; }
+}
+
 @layer utilities {
   .animate-step-reveal {
     animation: step-reveal 220ms var(--ease-out-expo) both;
@@ -239,6 +261,22 @@
   .animate-bar-fill {
     transform-origin: left center;
     animation: bar-fill 220ms var(--ease-out-quart) both;
+  }
+  /* Grid item entrance — reads `--i` for stagger (cap at the call site) */
+  .animate-card-enter {
+    opacity: 0;
+    animation: card-enter 320ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+  /* Chip entrance — snappier than cards, for short metadata rows */
+  .animate-chip-enter {
+    opacity: 0;
+    animation: chip-enter 240ms var(--ease-out-expo) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+  /* Idle breathing — pair with motion-safe: usage */
+  .animate-idle-breathe {
+    animation: idle-breathe 3s ease-in-out infinite;
   }
 }
 
