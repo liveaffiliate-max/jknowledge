@@ -7,8 +7,9 @@ import { AvatarUpload } from "./_components/avatar-upload"
 import { EditNameForm }  from "./_components/edit-name-form"
 import { SignOutButton } from "./_components/sign-out-button"
 import { DeleteAccountButton } from "./_components/delete-account-button"
+import { getMBTIProfile } from "@/data/mbti-types"
 import {
-  BarChart2, KeyRound, Mail, CalendarDays, TrendingUp, Brain,
+  BarChart2, KeyRound, Mail, CalendarDays, TrendingUp, Brain, ChevronRight,
 } from "lucide-react"
 import type { Metadata } from "next"
 
@@ -86,23 +87,34 @@ export default async function ProfilePage() {
         </div>
 
         {/* ── MBTI badge ── */}
-        {mbti ? (
-          <Link
-            href={`/mbti/${mbti.type.toLowerCase()}`}
-            className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4 transition-all hover:border-green-200 hover:shadow-sm"
-          >
-            <span className="flex items-center gap-3">
-              <span className="text-2xl" aria-hidden>{mbti.emoji}</span>
-              <span className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-900">
-                  {mbti.type} · {mbti.nickname}
+        {mbti ? (() => {
+          // Icon comes from the local mbti-types data (Lucide component),
+          // not from a serialized emoji string — keeps the visual on-brand.
+          const Icon = getMBTIProfile(mbti.type)?.icon ?? Brain
+          return (
+            <Link
+              href={`/mbti/${mbti.type.toLowerCase()}`}
+              className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-5 py-4 transition-all hover:border-green-200 hover:shadow-sm"
+            >
+              <span className="flex items-center gap-3">
+                <span
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+                  style={{ backgroundColor: `${mbti.color}1a` }}
+                  aria-hidden
+                >
+                  <Icon className="h-5 w-5" style={{ color: mbti.color }} />
                 </span>
-                <span className="text-xs text-gray-400">บุคลิกของคุณ</span>
+                <span className="flex flex-col">
+                  <span className="text-sm font-semibold text-gray-900">
+                    {mbti.type} · {mbti.nickname}
+                  </span>
+                  <span className="text-xs text-gray-400">บุคลิกของคุณ</span>
+                </span>
               </span>
-            </span>
-            <span className="text-gray-300">→</span>
-          </Link>
-        ) : (
+              <ChevronRight className="h-4 w-4 text-gray-300" />
+            </Link>
+          )
+        })() : (
           <Link
             href="/mbti"
             className="flex items-center justify-between rounded-2xl border border-dashed border-gray-200 bg-white px-5 py-4 text-sm font-medium text-gray-600 transition-all hover:border-green-300 hover:bg-green-50/40"
@@ -111,7 +123,7 @@ export default async function ProfilePage() {
               <Brain className="h-4 w-4 text-green-600" />
               ทำ MBTI เพื่อรับคำแนะนำคณะ
             </span>
-            <span className="text-gray-300">→</span>
+            <ChevronRight className="h-4 w-4 text-gray-300" />
           </Link>
         )}
 
@@ -156,7 +168,7 @@ export default async function ProfilePage() {
             <BarChart2 className="h-4 w-4 text-green-600" />
             ดูประวัติการวิเคราะห์
           </span>
-          <span className="text-gray-300">→</span>
+          <ChevronRight className="h-4 w-4 text-gray-300" />
         </Link>
 
       </div>

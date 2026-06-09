@@ -4,7 +4,7 @@ import Link from "next/link"
 import Header from "@/components/layout/header"
 import { getDashboardHistory } from "@/server/queries"
 import { DashboardList } from "./_components/dashboard-list"
-import { BarChart2, Clock, TrendingUp, TrendingDown } from "lucide-react"
+import { BarChart2, Clock, TrendingUp, TrendingDown, Sparkles } from "lucide-react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -31,7 +31,10 @@ export default async function DashboardPage() {
       {/* ── Page header ── */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-4 py-6">
-          <h1 className="text-xl font-bold text-gray-900">สวัสดี, {firstName} 👋</h1>
+          <h1 className="flex items-center gap-2 text-xl font-bold text-gray-900">
+            สวัสดี, {firstName}
+            <Sparkles className="h-5 w-5 text-green-500" aria-hidden />
+          </h1>
           <p className="mt-0.5 text-sm text-gray-500">ประวัติการวิเคราะห์คะแนน TCAS ของคุณ</p>
         </div>
       </div>
