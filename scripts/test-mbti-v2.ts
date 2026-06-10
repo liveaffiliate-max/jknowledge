@@ -33,22 +33,22 @@ const test = (cond: boolean, s: string, r = "") => cond ? ok(s) : bad(s, r)
 async function suite1_DB() {
   console.log("\n📊 Suite 1: DB state")
   const rows = await prisma.mBTIQuestion.findMany({ where: { active: true } })
-  test(rows.length === 28, "28 active questions")
+  test(rows.length === 60, "60 active questions", `got ${rows.length}`)
   const reverse = rows.filter((r) => r.isReverse).length
-  test(reverse === 12, "12 reverse items", `got ${reverse}`)
+  test(reverse === 28, "28 reverse items", `got ${reverse}`)
   const byDim: Record<string, { std: number; rev: number }> = {}
   for (const r of rows) {
     byDim[r.dimension] ??= { std: 0, rev: 0 }
     r.isReverse ? byDim[r.dimension].rev++ : byDim[r.dimension].std++
   }
   for (const dim of ["EI", "SN", "TF", "JP"]) {
-    test(byDim[dim]?.std === 4, `${dim}: 4 standard`, `got ${byDim[dim]?.std}`)
-    test(byDim[dim]?.rev === 3, `${dim}: 3 reverse`, `got ${byDim[dim]?.rev}`)
+    test(byDim[dim]?.std === 8, `${dim}: 8 standard`, `got ${byDim[dim]?.std}`)
+    test(byDim[dim]?.rev === 7, `${dim}: 7 reverse`, `got ${byDim[dim]?.rev}`)
   }
   const sample = rows[0]
-  test(sample.text.startsWith("ฉัน"), "Statement starts with 'ฉัน'", `text=${sample.text}`)
-  test(sample.text.length <= 80, "Statement ≤ 80 chars", `len=${sample.text.length}`)
-  test(rows.every((r) => r.version === 2), "All rows are version=2")
+  test(sample.statement.startsWith("ฉัน"), "Statement starts with 'ฉัน'", `statement=${sample.statement}`)
+  test(sample.statement.length <= 80, "Statement ≤ 80 chars", `len=${sample.statement.length}`)
+  test(rows.every((r) => r.version === 3), "All rows are version=3")
 }
 
 async function suite2_ScoringConsistency() {

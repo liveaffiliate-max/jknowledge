@@ -57,19 +57,17 @@ async function main() {
       data: {
         order:     q.id,
         dimension: q.dimension,
-        text:      q.text,
-        optionA:   q.optionA,
-        optionB:   q.optionB,
+        statement: q.statement,
         weight:    q.weight ?? 1.0,
         isReverse: q.isReverse ?? false,
         category:  q.category ?? null,
-        version:   2,
+        version:   3,
         active:    true,
       },
     })
     inserted++
   }
-  console.log(`  Inserted ${inserted} rows (version=2)`)
+  console.log(`  Inserted ${inserted} rows (version=3)`)
 
   console.log("\n✅ Done.")
   await prisma.$disconnect()

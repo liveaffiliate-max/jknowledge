@@ -15,16 +15,15 @@ export type MBTIDimension = "EI" | "SN" | "TF" | "JP"
 export interface MBTIQuestion {
   id: number
   dimension: MBTIDimension
-  text: string
   /**
-   * Normal question  — A = first letter  (E/S/T/J), B = second letter (I/N/F/P)
-   * Reverse question — A = second letter (I/N/F/P), B = first letter  (E/S/T/J)
+   * Single declarative statement starting with "ฉัน…", e.g.
+   * "ฉันรู้สึกมีพลังเมื่อได้พูดคุยกับคนหลายๆ คน".
+   * The user answers on a 5-point agree Likert scale.
    */
-  optionA: string
-  optionB: string
+  statement: string
   /** Discrimination weight, default 1.0. Higher = more influential in scoring. */
   weight?: number
-  /** When true the polarity is flipped: A→B-pole, B→A-pole. Reduces pattern answering. */
+  /** When true, "agree" drives the score toward the B-pole (I/N/F/P) instead of A. */
   isReverse?: boolean
   /** Topic bucket for analytics: "social" | "planning" | "decision" | "perception" | "stress" | "emotion" */
   category?: string

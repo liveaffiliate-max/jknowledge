@@ -16,9 +16,10 @@ export const getMBTIQuestions = unstable_cache(
     return rows.map((q) => ({
       id:        q.order,
       dimension: q.dimension as MBTIQuestion["dimension"],
-      text:      q.text,
-      optionA:   q.optionA,
-      optionB:   q.optionB,
+      statement: q.statement,
+      weight:    q.weight,
+      isReverse: q.isReverse,
+      category:  q.category ?? undefined,
     }))
   },
   ["mbti-questions"],

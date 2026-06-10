@@ -456,7 +456,7 @@ export function MBTIQuiz() {
           {/* Statement card — slightly larger to feel like the main focal point */}
           <div className="mt-1 rounded-xl bg-gray-50 px-5 py-5">
             <p className="text-center text-base font-semibold leading-relaxed text-gray-900 sm:text-lg">
-              &ldquo;{currentQ.text}&rdquo;
+              &ldquo;{currentQ.statement}&rdquo;
             </p>
           </div>
         </div>

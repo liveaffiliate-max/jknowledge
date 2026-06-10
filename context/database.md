@@ -2,6 +2,32 @@
 
 ---
 
+## 2026-06-10 — MBTI Phase 3: Schema Cleanup (text → statement, drop optionA/B)
+
+### สิ่งที่ทำ
+- เปลี่ยน `MBTIQuestion.text` → `statement` (รักษา type `String`, ไม่ null)
+- ลบคอลัมน์ `optionA`, `optionB` (เก็บคำว่า "เห็นด้วย"/"ไม่เห็นด้วย" ที่ไม่ได้ใช้แล้ว — UI fix labels เอง)
+- ขั้นตอน:
+  1. Run `npx tsx scripts/drop-mbti-questions.ts` ลบ 60 rows ก่อน
+  2. `npx prisma db push` — schema sync ใหม่ใน 2.05s
+  3. `npx prisma generate` — regen client
+  4. Re-seed 60 rows ใหม่ (version=3)
+- ลบ `scripts/seed-mbti.ts` ที่เป็น v1 (text/optionA/optionB) ทิ้ง
+
+### Schema changes
+- Model `MBTIQuestion`:
+  - `text` → `statement` (rename)
+  - ลบ `optionA String`
+  - ลบ `optionB String`
+
+### หมายเหตุ
+- ใช้ `db push` (ไม่ใช่ migrate dev) ตาม convention โปรเจค
+- Backup: ก่อน drop rows ขั้นนี้ DB มี 60 rows ที่ตรงกับ `mbti-statements.ts` แล้ว
+- Test: `test-dim-breakdown` 12/12 + `test-stratified-picker` 26/26 ผ่าน
+- TypeScript noEmit clean
+
+---
+
 ## 2026-06-10 — MBTI Phase 2 (A.1): Item Pool 28 → 60 + Stratified Random
 
 ### สิ่งที่ทำ

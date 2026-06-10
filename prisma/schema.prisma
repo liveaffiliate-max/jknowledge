@@ -145,12 +145,10 @@ model MBTIQuestion {
   id        String        @id @default(cuid())
   order     Int           // 1-based display order
   dimension MBTIDimension
-  text      String
-  optionA   String        // → first letter (E, S, T, J)  [or reversed if isReverse=true]
-  optionB   String        // → second letter (I, N, F, P) [or reversed if isReverse=true]
+  statement String        // single declarative statement, e.g. "ฉันรู้สึกมีพลังเมื่ออยู่กับคนหมู่มาก"
   // ── Psychometric metadata ────────────────────────────────
   weight    Float         @default(1.0)   // discrimination weight 0.5–2.0; higher = more influential
-  isReverse Boolean       @default(false) // true = A/B polarity is flipped (A→B-pole, B→A-pole)
+  isReverse Boolean       @default(false) // true = agree → B-pole (I/N/F/P) instead of A-pole
   category  String?       // "social" | "planning" | "decision" | "perception" | "stress" | "emotion"
   // ────────────────────────────────────────────────────────
   version   Int           @default(1)
