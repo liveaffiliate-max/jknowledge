@@ -205,47 +205,57 @@ export const getFacultyRequirement = unstable_cache(
 
 // ── Faculty + Scores (for Analyze action) ────────────────────────────────────
 
-export const getFacultyWithScores = unstable_cache(
-  async (facultyId: string): Promise<FacultyWithScores | null> => {
-    const f = await prisma.faculty.findUnique({
-      where: { id: facultyId },
-      include: {
-        university: true,
-        scores: { orderBy: { year: "asc" } },
-      },
-    })
-    if (!f) return null
+// NOTE: include facultyId in keyParts so each id gets its own cache entry.
+// Without this, Next.js 16 + Turbopack was returning a cached null for any input
+// after the first call with an invalid id — turning every faculty page into a 404.
+async function _getFacultyWithScores(facultyId: string): Promise<FacultyWithScores | null> {
+  const f = await prisma.faculty.findUnique({
+    where: { id: facultyId },
+    include: {
+      university: true,
+      scores: { orderBy: { year: "asc" } },
+    },
+  })
+  if (!f) return null
 
-    return {
-      id: f.id,
-      universityId: f.universityId,
-      slug: f.slug,
-      name: f.name,
-      program: normalizeProgram(f.program),
-      majorName: normalizeMajor(f.majorName) || undefined,
-      detail: normalizeDetail(f.detail, f.name) || undefined,
-      field: f.field as unknown as FacultyField,
-      university: {
-        id: f.university.id,
-        slug: f.university.slug,
-        name: f.university.name,
-        shortName: f.university.shortName,
-        location: f.university.location,
-        color: f.university.color,
-        logoUrl: f.university.logoUrl ?? undefined,
-      },
-      scores: f.scores.map((s) => ({
-        year: s.year,
-        minScore: s.minScore,
-        avgScore: s.avgScore,
-        maxScore: s.maxScore ?? undefined,
-        seats: s.seats ?? undefined,
-      })),
-    }
-  },
-  ["faculty-with-scores"],
-  { revalidate: 1800, tags: ["faculties", "tcas-scores"] }
-)
+  return {
+    id: f.id,
+    universityId: f.universityId,
+    slug: f.slug,
+    name: f.name,
+    program: normalizeProgram(f.program),
+    majorName: normalizeMajor(f.majorName) || undefined,
+    detail: normalizeDetail(f.detail, f.name) || undefined,
+    field: f.field as unknown as FacultyField,
+    university: {
+      id: f.university.id,
+      slug: f.university.slug,
+      name: f.university.name,
+      shortName: f.university.shortName,
+      location: f.university.location,
+      color: f.university.color,
+      logoUrl: f.university.logoUrl ?? undefined,
+    },
+    scores: f.scores.map((s) => ({
+      year: s.year,
+      minScore: s.minScore,
+      avgScore: s.avgScore,
+      maxScore: s.maxScore ?? undefined,
+      seats: s.seats ?? undefined,
+    })),
+  }
+}
+
+export async function getFacultyWithScores(
+  facultyId: string
+): Promise<FacultyWithScores | null> {
+  // Per-id keyParts — guards against the "shared cache key returns stale null" bug.
+  return unstable_cache(
+    () => _getFacultyWithScores(facultyId),
+    ["faculty-with-scores", facultyId],
+    { revalidate: 1800, tags: ["faculties", "tcas-scores"] }
+  )()
+}
 
 // ── Profile stats ─────────────────────────────────────────────────────────────
 

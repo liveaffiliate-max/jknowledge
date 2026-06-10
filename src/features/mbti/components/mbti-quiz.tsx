@@ -13,10 +13,12 @@ import {
   newlyCompletedDimensions,
   overallConfidence,
   pickNextQuestion,
-  shuffleArray,
+  pickQuestionsForSession,
+  SESSION_TOTAL,
   updateProgress,
   type DimProgressMap,
 } from "@/utils/mbti"
+import { useSessionSeed } from "../hooks/use-session-seed"
 import { MBTIResultCard } from "./mbti-result-card"
 import { MBTIReveal } from "./mbti-reveal"
 import { saveQuizResult } from "../actions/save-result"
@@ -33,7 +35,14 @@ const SCALE = [
   { value: 5 as const, fill: "bg-blue-600  text-white",    ring: "ring-blue-500",   passive: "bg-blue-100  border-blue-200"  },
 ]
 
-// (spectrum slider removed — using simple 5-dot layout with smooth transitions)
+// Permanent labels under each dot — matches the 5-point agree scale
+const SCALE_LABEL: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: "เห็นด้วยมากที่สุด",
+  2: "เห็นด้วย",
+  3: "กลางๆ",
+  4: "ไม่เห็นด้วย",
+  5: "ไม่เห็นด้วยเลย",
+}
 
 const DIM_META: Record<MBTIDimension, { label: string; color: string; barColor: string }> = {
   EI: { label: "ด้านพลังงาน",   color: "text-blue-600",   barColor: "bg-blue-400" },
@@ -45,8 +54,10 @@ const DIM_META: Record<MBTIDimension, { label: string; color: string; barColor: 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function MBTIQuiz() {
-  // Start unshuffled so SSR and first client render match; shuffle after mount.
-  const [pool, setPool]                   = useState<MBTIQuestion[]>(() => [...mbtiQuestions])
+  // Pool starts empty on SSR so the server renders an intro skeleton; the
+  // useEffect below builds the per-session subset once the seed is known.
+  const sessionSeed = useSessionSeed()
+  const [pool, setPool]                   = useState<MBTIQuestion[]>([])
   const [answered, setAnswered]           = useState<MBTIAnswer[]>([])
   const [progress, setProgress]           = useState<DimProgressMap>(initialProgress)
   const [likert, setLikert]               = useState<1 | 2 | 3 | 4 | 5 | null>(null)
@@ -58,28 +69,36 @@ export function MBTIQuiz() {
   const [revealing, setRevealing]         = useState(false)
   const [pendingResult, setPendingResult] = useState<MBTIResult | null>(null)
   const [result, setResult]               = useState<MBTIResult | null>(null)
+  const [resultId, setResultId]           = useState<string | undefined>(undefined)
   // transient dimension-complete celebration
   const [celebration, setCelebration]     = useState<{ dim: MBTIDimension; label: string } | null>(null)
   // intro screen before quiz starts
   const [started, setStarted]             = useState(false)
-  // Method 1: randomize which option appears on top each question
-  const [displayFlipped, setDisplayFlipped] = useState(false)
 
   const answeredCount = answered.length
   const currentQ      = pool.length > 0 ? pickNextQuestion(pool, progress) : null
   const overall       = overallConfidence(progress)
   const preview       = getPartialType(progress)
+  // Question-count progress (1..TOTAL_QUESTIONS) — drives the bottom progress bar.
+  // Confidence still drives the hero preview at top; the two metrics complement each other.
+  // Session length is the stratified subset size (24), not the full pool (60).
+  const totalQuestions = SESSION_TOTAL
+  const questionProgress = Math.min(1, answeredCount / totalQuestions)
   // Key to trigger enter slide animation on each new question
   const [questionKey, setQuestionKey] = useState(0)
   // Ref to always-latest handleNext for auto-advance timer
   const handleNextRef = useRef<() => void>(() => {})
 
-  // Shuffle once after mount — randomness isn't available at SSR, so shuffling
-  // here (not in useState init) keeps the first client render matching the server.
+  // Build the per-session stratified subset once the seed is available.
+  // The seed comes from Clerk userId (signed-in) or a persisted guest uuid —
+  // same seed always yields the same 24 items in the same order, so retakes
+  // are directly comparable.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only randomisation
-    setPool((p) => shuffleArray(p))
-  }, [])
+    if (!sessionSeed) return
+    if (pool.length > 0) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot session build
+    setPool(pickQuestionsForSession(mbtiQuestions, sessionSeed))
+  }, [sessionSeed, pool.length])
 
   // Keep handleNextRef up-to-date every render
   useEffect(() => { handleNextRef.current = handleNext })
@@ -110,7 +129,7 @@ export function MBTIQuiz() {
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   // Track previously answered questions for "go back"
-  const [history, setHistory] = useState<{ question: MBTIQuestion; answer: MBTIAnswer; flipped: boolean }[]>([])
+  const [history, setHistory] = useState<{ question: MBTIQuestion; answer: MBTIAnswer }[]>([])
 
   function handleNext() {
     if (!likert || !currentQ || animating) return
@@ -118,32 +137,27 @@ export function MBTIQuiz() {
     const weight    = currentQ.weight    ?? 1.0
     const isReverse = currentQ.isReverse ?? false
 
-    // Method 1: when display is flipped, invert likert before scoring
-    // (value 1 = toward top option; if flipped, top = B so scoring value flips)
-    const scoringLikert = displayFlipped
-      ? ((6 - likert) as 1 | 2 | 3 | 4 | 5)
-      : likert
-
+    // Single-statement format — likert 1=strongly agree (toward A-pole),
+    // 5=strongly disagree (toward B-pole). isReverse flips polarity at scoring time.
     const newAnswer: MBTIAnswer = {
       questionId:     currentQ.id,
       dimension:      currentQ.dimension,
-      likert:         scoringLikert,
+      likert,
       weight,
       isReverse,
       responseTimeMs: Date.now() - questionStartTime,
     }
     const newAnswers  = [...answered, newAnswer]
     const newPool     = pool.filter((q) => q.id !== currentQ.id)
-    const newProgress = updateProgress(progress, currentQ.dimension, scoringLikert, weight, isReverse)
+    const newProgress = updateProgress(progress, currentQ.dimension, likert, weight, isReverse)
     const completed   = newlyCompletedDimensions(progress, newProgress)
-    const nextFlipped = Math.random() < 0.5
 
     // Auto-finish: enough confidence OR ran out of questions → cinematic reveal
     if (newPool.length === 0 || canFinishEarly(newProgress)) {
       const mbtiResult = computeMBTIResult(newAnswers)
       setAnswered(newAnswers)
       setProgress(newProgress)
-      setHistory((h) => [...h, { question: currentQ, answer: newAnswer, flipped: displayFlipped }])
+      setHistory((h) => [...h, { question: currentQ, answer: newAnswer }])
       setPendingResult(mbtiResult)
       setRevealing(true)
 
@@ -156,6 +170,7 @@ export function MBTIQuiz() {
       })
       saveQuizResult({ result: mbtiResult, answers: newAnswers, durationMs })
         .then((id) => {
+          setResultId(id)
           try { localStorage.setItem("mbti_result_id", id) } catch { /* storage blocked */ }
         })
         .catch(console.error)
@@ -168,9 +183,8 @@ export function MBTIQuiz() {
       setAnswered(newAnswers)
       setPool(newPool)
       setProgress(newProgress)
-      setHistory((h) => [...h, { question: currentQ, answer: newAnswer, flipped: displayFlipped }])
+      setHistory((h) => [...h, { question: currentQ, answer: newAnswer }])
       setLikert(null)
-      setDisplayFlipped(nextFlipped)
       setQuestionStartTime(Date.now())
       setQuestionKey((k) => k + 1)
       setAnimating(false)
@@ -184,18 +198,13 @@ export function MBTIQuiz() {
   function handleBack() {
     if (history.length === 0 || animating) return
     const prev = history[history.length - 1]
-    const { question: prevQ, answer: prevA, flipped: prevFlipped } = prev
+    const { question: prevQ, answer: prevA } = prev
 
     // Reverse the progress contribution (prevA.likert is scoring value)
     const direction = prevA.isReverse ? -1 : 1
     const contribution = [0, 2, 1, 0, -1, -2][prevA.likert] * direction * prevA.weight
     const dim = prevA.dimension
     const p = progress[dim]
-
-    // Convert scoring likert back to display position for that question's flip state
-    const displayLikert = prevFlipped
-      ? ((6 - prevA.likert) as 1 | 2 | 3 | 4 | 5)
-      : prevA.likert
 
     setHistory((h) => h.slice(0, -1))
     setAnswered((a) => a.slice(0, -1))
@@ -208,20 +217,19 @@ export function MBTIQuiz() {
         maxPossible: p.maxPossible - prevA.weight * 2,
       },
     })
-    setLikert(displayLikert)
-    setDisplayFlipped(prevFlipped)
+    setLikert(prevA.likert)
     setQuestionStartTime(Date.now())
   }
 
   function handleRestart() {
     trackMBTIRestart()
-    setPool(shuffleArray([...mbtiQuestions]))
+    // Same seed → same subset, so retake is directly comparable.
+    setPool(sessionSeed ? pickQuestionsForSession(mbtiQuestions, sessionSeed) : [])
     setAnswered([])
     setProgress(initialProgress())
     setHistory([])
     setStarted(false)
     setLikert(null)
-    setDisplayFlipped(Math.random() < 0.5)
     setQuestionKey(0)
     setAnimating(false)
     setQuestionStartTime(Date.now())
@@ -229,13 +237,14 @@ export function MBTIQuiz() {
     setRevealing(false)
     setPendingResult(null)
     setResult(null)
+    setResultId(undefined)
     setCelebration(null)
   }
 
   // ── Result / reveal screens ───────────────────────────────────────────────────
 
   if (result) {
-    return <MBTIResultCard result={result} onRestart={handleRestart} />
+    return <MBTIResultCard result={result} onRestart={handleRestart} resultId={resultId} />
   }
 
   if (revealing && pendingResult) {
@@ -288,16 +297,16 @@ export function MBTIQuiz() {
           <div className="mb-7 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3.5">
             <p className="mb-3 text-xs font-medium text-gray-500">วิธีตอบแต่ละข้อ</p>
             <p className="mb-3 text-xs text-gray-500 leading-relaxed">
-              แต่ละข้อมีสองตัวเลือก กดวงกลมเพื่อบอกว่าคุณเอนเอียงไปทางไหน
+              แต่ละข้อมีประโยคหนึ่งประโยค เลือกระดับว่าตรงกับคุณแค่ไหน
             </p>
-            {/* Mini scale preview — dot + label per column */}
+            {/* Mini scale preview — 5 dots with permanent labels */}
             {(() => {
               const previewDots = [
-                { passive: "bg-green-200 border-green-400", label: "เห็นด้วยที่สุด" },
+                { passive: "bg-green-200 border-green-400", label: "เห็นด้วย\nมากที่สุด" },
                 { passive: "bg-green-100 border-green-300", label: "เห็นด้วย" },
-                { passive: "bg-gray-200 border-gray-400",  label: "" },
-                { passive: "bg-blue-100 border-blue-300",  label: "เห็นด้วย" },
-                { passive: "bg-blue-200 border-blue-400",  label: "เห็นด้วยที่สุด" },
+                { passive: "bg-gray-200 border-gray-400",  label: "กลางๆ" },
+                { passive: "bg-blue-100 border-blue-300",  label: "ไม่เห็นด้วย" },
+                { passive: "bg-blue-200 border-blue-400",  label: "ไม่เห็นด้วย\nเลย" },
               ]
               return (
                 <div className="flex items-start justify-between">
@@ -308,7 +317,7 @@ export function MBTIQuiz() {
                         <div className={cn("h-8 w-8 flex-shrink-0 rounded-full border-2", dot.passive)} />
                         <div className={cn("h-px flex-1", i < 4 ? "bg-gray-200" : "bg-transparent")} />
                       </div>
-                      <span className="w-full text-center text-[10px] leading-tight text-gray-500">
+                      <span className="w-full whitespace-pre-line text-center text-[10px] leading-tight text-gray-500">
                         {dot.label}
                       </span>
                     </div>
@@ -421,21 +430,22 @@ export function MBTIQuiz() {
             : "motion-safe:animate-in motion-safe:slide-in-from-left-3 motion-safe:fade-in duration-200"
         )}
       >
-        {/* Progress bar */}
+        {/* Progress bar — based on question count (1..N), not confidence */}
         <div className="px-6 pt-4 pb-0">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] text-gray-400">ข้อที่ {answeredCount + 1}</span>
-            <span className="text-[10px] text-gray-400 tabular-nums">{Math.round(overall * 100)}%</span>
+          <div className="flex items-center justify-end mb-1">
+            <span className="text-[10px] text-gray-400 tabular-nums">
+              {Math.round(questionProgress * 100)}%
+            </span>
           </div>
           <div className="h-1 w-full rounded-full bg-gray-100 overflow-hidden">
             <div
               className="h-full rounded-full bg-green-500 transition-all duration-700 ease-out"
-              style={{ width: `${Math.round(overall * 100)}%` }}
+              style={{ width: `${Math.round(questionProgress * 100)}%` }}
             />
           </div>
         </div>
 
-        {/* Adaptive framing + question */}
+        {/* Adaptive framing + single statement */}
         <div className="px-6 pt-4 pb-4">
           <div className="mb-2 flex items-center gap-1.5">
             <span className={cn("inline-block h-1.5 w-1.5 rounded-full", meta.barColor)} />
@@ -443,35 +453,21 @@ export function MBTIQuiz() {
               ทำความเข้าใจ{meta.label}ของคุณ
             </span>
           </div>
-          <p className="text-base font-semibold leading-snug text-gray-900">
-            {currentQ.text}
-          </p>
+          {/* Statement card — slightly larger to feel like the main focal point */}
+          <div className="mt-1 rounded-xl bg-gray-50 px-5 py-5">
+            <p className="text-center text-base font-semibold leading-relaxed text-gray-900 sm:text-lg">
+              &ldquo;{currentQ.text}&rdquo;
+            </p>
+          </div>
         </div>
 
-        {/* ── Spectrum layout ── */}
+        {/* ── 5-dot agree scale ── */}
         <div className="px-5 pb-6 pt-2">
-
-          {/* Method 3: options + dots fade in together after 240ms
-              so user reads the question first, then both options appear simultaneously */}
           <div
-            className="space-y-3 motion-safe:animate-in motion-safe:fade-in"
-            style={{ animationDuration: "260ms", animationDelay: "240ms", animationFillMode: "both" }}
+            className="motion-safe:animate-in motion-safe:fade-in"
+            style={{ animationDuration: "260ms", animationDelay: "200ms", animationFillMode: "both" }}
           >
-            {/* Top option — determined by displayFlipped (Method 1) */}
-            <button
-              type="button"
-              onClick={() => setLikert(1)}
-              className={cn(
-                "w-full rounded-xl px-4 py-3 text-left text-sm leading-snug motion-safe:transition-[background-color,border-color,color] duration-150 cursor-pointer border outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1",
-                likert && likert <= 2
-                  ? "border-green-300 bg-green-50 text-green-800 font-medium"
-                  : "border-gray-100 text-gray-700 hover:bg-gray-50"
-              )}
-            >
-              {displayFlipped ? currentQ.optionB : currentQ.optionA}
-            </button>
-
-            {/* 5 spectrum dots */}
+            {/* Dots row */}
             <div className="flex items-center justify-center py-2">
               {SCALE.map((s, i) => {
                 const isSelected = likert === s.value
@@ -479,26 +475,20 @@ export function MBTIQuiz() {
                   <div key={s.value} className="flex items-center">
                     {i > 0 && (
                       <div className={cn(
-                        "h-0.5 w-6 sm:w-8 transition-colors duration-300 ease-in-out",
-                        (likert && (
+                        "h-0.5 w-6 sm:w-10 transition-colors duration-300 ease-in-out",
+                        likert && (
                           (s.value <= likert && SCALE[i - 1].value <= likert) ||
                           (s.value >= likert && SCALE[i - 1].value >= likert)
-                        )) ? (likert <= 2 ? "bg-green-300" : likert >= 4 ? "bg-blue-300" : "bg-gray-300")
+                        ) ? (likert <= 2 ? "bg-green-300" : likert >= 4 ? "bg-blue-300" : "bg-gray-300")
                           : "bg-gray-200"
                       )} />
                     )}
                     <button
                       type="button"
                       onClick={() => setLikert(s.value)}
-                      aria-label={
-                        s.value === 1 ? "เห็นด้วยกับตัวเลือกบนมากที่สุด" :
-                        s.value === 2 ? "ค่อนข้างเห็นด้วยกับตัวเลือกบน" :
-                        s.value === 3 ? "กลางๆ ไม่ได้โน้มเอียง" :
-                        s.value === 4 ? "ค่อนข้างเห็นด้วยกับตัวเลือกล่าง" :
-                        "เห็นด้วยกับตัวเลือกล่างมากที่สุด"
-                      }
+                      aria-label={SCALE_LABEL[s.value]}
                       className={cn(
-                        "flex h-11 w-11 items-center justify-center rounded-full border-2",
+                        "flex h-12 w-12 items-center justify-center rounded-full border-2 sm:h-11 sm:w-11",
                         "motion-safe:transition-[background-color,border-color,box-shadow,transform] duration-150 ease-out",
                         isSelected
                           ? cn("shadow-md scale-110", s.fill, s.ring.replace("ring-", "border-"))
@@ -514,25 +504,23 @@ export function MBTIQuiz() {
               })}
             </div>
 
-            {/* Scale hint */}
-            <div className="flex justify-between px-1 text-xs text-gray-400">
-              <span>← ตัวเลือกบน</span>
-              <span>ตัวเลือกล่าง →</span>
+            {/* Permanent labels under each dot — sizes the visible scale */}
+            <div className="mt-1 grid grid-cols-5 gap-1 px-1 text-center">
+              {SCALE.map((s) => (
+                <span
+                  key={s.value}
+                  className={cn(
+                    "text-[10px] leading-tight motion-safe:transition-colors",
+                    likert === s.value
+                      ? (s.value <= 2 ? "font-semibold text-green-700" :
+                         s.value >= 4 ? "font-semibold text-blue-700" : "font-semibold text-gray-700")
+                      : "text-gray-400"
+                  )}
+                >
+                  {SCALE_LABEL[s.value]}
+                </span>
+              ))}
             </div>
-
-            {/* Bottom option */}
-            <button
-              type="button"
-              onClick={() => setLikert(5)}
-              className={cn(
-                "w-full rounded-xl px-4 py-3 text-left text-sm leading-snug motion-safe:transition-[background-color,border-color,color] duration-150 cursor-pointer border outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-1",
-                likert && likert >= 4
-                  ? "border-blue-300 bg-blue-50 text-blue-800 font-medium"
-                  : "border-gray-100 text-gray-700 hover:bg-gray-50"
-              )}
-            >
-              {displayFlipped ? currentQ.optionA : currentQ.optionB}
-            </button>
           </div>
 
           {/* Back + Next — back always rendered to prevent layout shift */}

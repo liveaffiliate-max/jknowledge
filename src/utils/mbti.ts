@@ -229,6 +229,58 @@ export function dimensionStrength(a: number, b: number): number {
   return Math.round((Math.max(a, b) / total) * 100)
 }
 
+/** Tie window — if the dominant pole sits within this band of 50%, flag as edge */
+export const EDGE_BAND = 53
+
+export interface DimBreakdownItem {
+  /** Dominant pole letter, e.g. "E" or "I" */
+  letter: string
+  /** Pole percentage 0–100 (always for the dominant side, ≥ 50) */
+  pct:    number
+  /** True when the result is borderline (within EDGE_BAND of 50/50) */
+  edge:   boolean
+  /** Original A-side and B-side letters in canonical order */
+  poleA:  string
+  poleB:  string
+}
+
+/**
+ * Builds a 4-item breakdown of dimension percentages from the raw scores object.
+ * Each item describes the *dominant* pole for that dimension along with whether
+ * the result is too close to 50/50 to be considered confident.
+ *
+ * Phase A.4 — drives the inline "E 73% · S 60% · T 51% · J 85%" summary on the
+ * result card / shareable page so users see continuous information rather than
+ * just the 4-letter type.
+ */
+export function getDimensionBreakdown(scores: {
+  E: number; I: number
+  S: number; N: number
+  T: number; F: number
+  J: number; P: number
+}): DimBreakdownItem[] {
+  const build = (a: number, b: number, lA: string, lB: string): DimBreakdownItem => {
+    const total = a + b
+    const aPct  = total === 0 ? 50 : (a / total) * 100
+    const dominantA = a >= b
+    const rawPct = dominantA ? aPct : 100 - aPct
+    const pct = Math.round(rawPct)
+    return {
+      letter: dominantA ? lA : lB,
+      pct,
+      edge:   pct <= EDGE_BAND,
+      poleA:  lA,
+      poleB:  lB,
+    }
+  }
+  return [
+    build(scores.E, scores.I, "E", "I"),
+    build(scores.S, scores.N, "S", "N"),
+    build(scores.T, scores.F, "T", "F"),
+    build(scores.J, scores.P, "J", "P"),
+  ]
+}
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 /** Fisher-Yates in-place shuffle — returns a new shuffled array */
@@ -239,4 +291,100 @@ export function shuffleArray<T>(arr: T[]): T[] {
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
+}
+
+// ── Deterministic seeded selection (Phase A.1) ────────────────────────────────
+//
+// Goal: pick a stratified subset (e.g. 24 from 60) that is **stable for a given
+// user** so retake results are comparable. Same seed → same subset → same order.
+// Falls back to a stable per-question order even when the seed is unknown.
+
+/** Hash an arbitrary string → uint32 seed. Fast deterministic FNV-1a. */
+export function hashStringToSeed(str: string): number {
+  let h = 2166136261 >>> 0
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i)
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return h >>> 0
+}
+
+/** Mulberry32 — tiny, well-distributed seedable PRNG. Returns [0,1). */
+export function mulberry32(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+/** Seeded Fisher-Yates — pure function, never touches Math.random. */
+export function shuffleSeeded<T>(arr: T[], rng: () => number): T[] {
+  const a = [...arr]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
+
+/**
+ * Per-dimension session quota.
+ * 6 items per dim × 4 dims = 24 questions/session — keeps the original quiz length.
+ */
+export const SESSION_PER_DIM = { std: 4, rev: 2 } as const
+export const SESSION_TOTAL = (SESSION_PER_DIM.std + SESSION_PER_DIM.rev) * DIM_ORDER.length
+
+/**
+ * Picks a stratified, deterministic subset of `pool` for one quiz session.
+ *
+ *   • For each dimension, draws `SESSION_PER_DIM.std` standard items and
+ *     `SESSION_PER_DIM.rev` reverse items at random (seeded).
+ *   • Interleaves dimensions in the final order so the user doesn't see
+ *     four EI questions in a row.
+ *   • Returns the original objects unmodified.
+ *
+ * `seed` should be a stable identifier for the user — Clerk userId for
+ * signed-in users, a long-lived localStorage uuid for guests. Same seed →
+ * identical question set & ordering.
+ */
+export function pickQuestionsForSession(
+  pool: MBTIQuestion[],
+  seed: string,
+): MBTIQuestion[] {
+  const rng = mulberry32(hashStringToSeed(seed))
+
+  // Bucket the pool by dim + reverse
+  const buckets: Record<MBTIDimension, { std: MBTIQuestion[]; rev: MBTIQuestion[] }> = {
+    EI: { std: [], rev: [] },
+    SN: { std: [], rev: [] },
+    TF: { std: [], rev: [] },
+    JP: { std: [], rev: [] },
+  }
+  for (const q of pool) {
+    const bucket = q.isReverse ? "rev" : "std"
+    buckets[q.dimension][bucket].push(q)
+  }
+
+  // Draw quota per bucket — if a bucket is short, take what's available
+  const drawn: Record<MBTIDimension, MBTIQuestion[]> = { EI: [], SN: [], TF: [], JP: [] }
+  for (const dim of DIM_ORDER) {
+    const stdShuf = shuffleSeeded(buckets[dim].std, rng).slice(0, SESSION_PER_DIM.std)
+    const revShuf = shuffleSeeded(buckets[dim].rev, rng).slice(0, SESSION_PER_DIM.rev)
+    drawn[dim] = shuffleSeeded([...stdShuf, ...revShuf], rng)
+  }
+
+  // Round-robin interleave across dims so consecutive items differ in dimension
+  const interleaved: MBTIQuestion[] = []
+  const maxLen = Math.max(...DIM_ORDER.map((d) => drawn[d].length))
+  for (let i = 0; i < maxLen; i++) {
+    for (const dim of DIM_ORDER) {
+      const q = drawn[dim][i]
+      if (q) interleaved.push(q)
+    }
+  }
+  return interleaved
 }

@@ -40,6 +40,7 @@ model Faculty {
   scores       TcasScore[]
   predictions  PredictionHistory[]
   requirement  FacultyRequirement?
+  mbtiMatches  FacultyMBTIMatch[]
 
   @@unique([universityId, slug])
   @@index([programCode])
@@ -177,19 +178,32 @@ model MBTIProfile {
   results        MBTIResult[]
 }
 
-/** Weighted faculty-field recommendation for each MBTI type */
+/**
+ * Weighted faculty recommendation for each MBTI type.
+ *
+ * Two row flavours coexist:
+ *  1. Faculty-level match (facultyId set) — points at a real Faculty row,
+ *     used for "real cutoff + link to /scores" recommendations.
+ *  2. Field-level fallback (facultyId null) — legacy/seed-time hint when no
+ *     real faculty is available; `field` carries the Thai category label.
+ */
 model FacultyMBTIMatch {
-  id       String  @id @default(cuid())
-  mbtiType String
-  field    String  // faculty field label (Thai), e.g. "วิศวกรรมศาสตร์"
-  score    Float   @default(0.8)  // 0.0–1.0 compatibility weight
-  reason   String                 // one-line Thai explanation
-  rank     Int     @default(1)    // display order within the type (1 = top match)
+  id        String  @id @default(cuid())
+  mbtiType  String
+  facultyId String? // ⬅ NEW — links to real Faculty when available
+  field     String  // faculty field label (Thai), e.g. "วิศวกรรมศาสตร์"
+  score     Float   @default(0.8)  // 0.0–1.0 compatibility weight
+  reason    String                 // one-line Thai explanation
+  rank      Int     @default(1)    // display order within the type (1 = top match)
 
   profile MBTIProfile @relation(fields: [mbtiType], references: [type], onDelete: Cascade)
+  faculty Faculty?    @relation(fields: [facultyId], references: [id], onDelete: SetNull)
 
-  @@unique([mbtiType, rank])
-  @@index([mbtiType])
+  // Uniqueness moved off `rank` since seeding generates many ranks per type
+  // when real-faculty rows replace the old 4-row-per-type structure.
+  @@unique([mbtiType, facultyId])
+  @@index([mbtiType, rank])
+  @@index([facultyId])
 }
 
 /** Saved quiz result (anonymous or authenticated) */

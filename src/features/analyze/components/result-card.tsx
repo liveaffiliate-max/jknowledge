@@ -4,6 +4,7 @@ import { CHANCE_CONFIG } from "@/utils/analyze"
 import { ScoreTrendChartLazy as ScoreTrendChart } from "./score-trend-chart-lazy"
 import { ScorePositionBar } from "./score-position-bar"
 import { ShareResultButton } from "./share-result-button"
+import { MBTIMatchBadge } from "./mbti-match-badge"
 import type { AdmissionResult } from "@/types/tcas"
 import {
   TrendingUp,
@@ -57,6 +58,9 @@ export function ResultCard({ result, onReset }: ResultCardProps) {
       </CardHeader>
 
       <CardContent className="mt-4 space-y-6">
+        {/* ── MBTI personality match badge (signed-in only) ── */}
+        <MBTIMatchBadge facultyId={faculty.id} />
+
         {/* ── Score summary row ── */}
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className={cn("rounded-xl p-3", color.bg)}>

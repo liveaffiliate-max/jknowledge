@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { MBTI_ROLE_META } from "@/types/mbti"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
 import { Check, X, Brain, BarChart2, GraduationCap, Briefcase, BookOpen, AlertTriangle, Share2 } from "lucide-react"
+import { MBTIFacultyList, MBTIFacultyListCTA } from "@/features/mbti/components/mbti-faculty-list"
 
 interface Props {
   params: Promise<{ type: string }>
@@ -179,28 +180,17 @@ export default async function MBTITypePage({ params }: Props) {
             </div>
           </div>
 
-          {/* Faculty recommendations */}
+          {/* Faculty recommendations — real DB-linked rows with cutoffs */}
           <div className="rounded-2xl border border-gray-200 bg-white p-6">
-            <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-4">
+            <div className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
               <GraduationCap className="h-4 w-4" />
               คณะที่เหมาะกับ {profile.type}
             </div>
-            <div className="space-y-3">
-              {profile.faculties.map((fac, i) => (
-                <div
-                  key={fac.field}
-                  className="flex items-start gap-3 rounded-xl bg-gray-50 px-4 py-3"
-                >
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-100 text-[11px] font-bold text-green-700">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{fac.field}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{fac.reason}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="mb-4 text-xs text-gray-500">
+              เรียงตามความเข้ากันได้ของบุคลิกและคะแนนล่าสุดจากระบบ
+            </p>
+            <MBTIFacultyList type={profile.type} limit={10} variant="full" source="type_page" />
+            <MBTIFacultyListCTA type={profile.type} />
           </div>
 
           {/* Careers */}
