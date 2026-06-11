@@ -196,7 +196,7 @@ function SettingsView({
         />
         <CategoryToggle
           label="การตลาด"
-          description="ยังไม่ใช้งานในปัจจุบัน เผื่อในอนาคต"
+          description="ใช้สำหรับวัดผลแคมเปญโฆษณาและทำความเข้าใจพฤติกรรมผู้ใช้ (Meta Pixel)"
           checked={draft.marketing}
           onChange={(v) => setDraft({ ...draft, marketing: v })}
         />

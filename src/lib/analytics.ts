@@ -2,6 +2,12 @@
 
 import { sendGAEvent } from "@next/third-parties/google"
 
+declare global {
+  interface Window {
+    fbq?: (...args: unknown[]) => void
+  }
+}
+
 // ── Privacy helpers ───────────────────────────────────────────────────────────
 // Raw TCAS scores are personal educational data (PDPA-protected).
 // We send bucketed/categorical versions to GA, never raw values.
@@ -25,16 +31,28 @@ function bucketGap(gap: number): "far_above" | "above" | "close" | "below" | "fa
   return "far_below"
 }
 
+// ── Cross-platform event helper ───────────────────────────────────────────────
+// Mirrors every GA event to Meta Pixel (as a custom event) so both platforms
+// see the same activity. Meta Pixel only loads when the user has consented
+// to marketing cookies, so this is a no-op until then.
+
+type EventParams = Record<string, string | number | boolean>
+
+function trackEvent(name: string, params: EventParams) {
+  sendGAEvent("event", name, params)
+  window.fbq?.("trackCustom", name, params)
+}
+
 // ── Analyze events ────────────────────────────────────────────────────────────
 
 export function trackUniversitySelect(universityName: string) {
-  sendGAEvent("event", "analyze_university_select", {
+  trackEvent("analyze_university_select", {
     university_name: universityName,
   })
 }
 
 export function trackFacultySelect(universityName: string, facultyName: string) {
-  sendGAEvent("event", "analyze_faculty_select", {
+  trackEvent("analyze_faculty_select", {
     university_name: universityName,
     faculty_name:    facultyName,
   })
@@ -46,7 +64,7 @@ export function trackAnalyzeSubmit(params: {
   hasWeights:     boolean
   userScore:      number
 }) {
-  sendGAEvent("event", "analyze_submit", {
+  trackEvent("analyze_submit", {
     university_name:   params.universityName,
     faculty_name:      params.facultyName,
     has_weights:       params.hasWeights,
@@ -61,7 +79,7 @@ export function trackAnalyzeResult(params: {
   gap:            number
   userScore:      number
 }) {
-  sendGAEvent("event", "analyze_result", {
+  trackEvent("analyze_result", {
     university_name:   params.universityName,
     faculty_name:      params.facultyName,
     chance:            params.chance,
@@ -73,7 +91,7 @@ export function trackAnalyzeResult(params: {
 // ── MBTI events ───────────────────────────────────────────────────────────────
 
 export function trackMBTIStart() {
-  sendGAEvent("event", "mbti_quiz_start", {})
+  trackEvent("mbti_quiz_start", {})
 }
 
 export function trackMBTIComplete(params: {
@@ -81,7 +99,7 @@ export function trackMBTIComplete(params: {
   durationSec:      number
   questionsAnswered: number
 }) {
-  sendGAEvent("event", "mbti_quiz_complete", {
+  trackEvent("mbti_quiz_complete", {
     mbti_type:         params.type,
     duration_sec:      params.durationSec,
     questions_answered: params.questionsAnswered,
@@ -89,7 +107,7 @@ export function trackMBTIComplete(params: {
 }
 
 export function trackMBTIRestart() {
-  sendGAEvent("event", "mbti_quiz_restart", {})
+  trackEvent("mbti_quiz_restart", {})
 }
 
 // Post-quiz funnel: tracks how users engage with their result
@@ -100,7 +118,7 @@ export function trackMBTIFacultyClick(params: {
   matchScore:     number
   source:         "result_card" | "type_page" | "share_page" | "dashboard"
 }) {
-  sendGAEvent("event", "mbti_faculty_click", {
+  trackEvent("mbti_faculty_click", {
     mbti_type:        params.mbtiType,
     faculty_id:       params.facultyId,
     rank:             params.rank,
@@ -110,21 +128,21 @@ export function trackMBTIFacultyClick(params: {
 }
 
 export function trackMBTIShareOpen(params: { mbtiType: string; variant: "story" | "square" | "link" }) {
-  sendGAEvent("event", "mbti_share_open", {
+  trackEvent("mbti_share_open", {
     mbti_type: params.mbtiType,
     variant:   params.variant,
   })
 }
 
 export function trackMBTIImageDownload(params: { mbtiType: string; variant: "story" | "square" }) {
-  sendGAEvent("event", "mbti_image_download", {
+  trackEvent("mbti_image_download", {
     mbti_type: params.mbtiType,
     variant:   params.variant,
   })
 }
 
 export function trackMBTIAnalyzeFromInsight(params: { mbtiType: string; facultyId: string }) {
-  sendGAEvent("event", "mbti_analyze_from_insight", {
+  trackEvent("mbti_analyze_from_insight", {
     mbti_type:  params.mbtiType,
     faculty_id: params.facultyId,
   })
@@ -137,7 +155,7 @@ export function trackFacultyClick(params: {
   facultyName:    string
   facultyId:      string
 }) {
-  sendGAEvent("event", "faculty_click", {
+  trackEvent("faculty_click", {
     university_slug: params.universitySlug,
     faculty_name:    params.facultyName,
     faculty_id:      params.facultyId,
