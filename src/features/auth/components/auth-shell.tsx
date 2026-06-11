@@ -1,7 +1,7 @@
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { BackButton } from "./back-button"
 
 interface AuthShellProps {
   title:    string
@@ -21,14 +21,7 @@ export function AuthShell({ title, subtitle, children, toggle }: AuthShellProps)
       <div className="w-full max-w-sm">
         {/* Top bar: back button + brand mark */}
         <div className="mb-6 flex items-center">
-          <Link
-            href="/"
-            className="flex items-center gap-1 rounded-lg p-1 text-sm text-gray-400 transition-colors hover:text-gray-700"
-            aria-label="กลับหน้าแรก"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="text-xs">หน้าแรก</span>
-          </Link>
+          <BackButton />
 
           <div className="flex flex-1 items-center justify-center gap-2.5">
             <Image

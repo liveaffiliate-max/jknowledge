@@ -360,14 +360,19 @@ export const getMinScoresLatest = unstable_cache(
 
 // ── Latest MBTI for a user ────────────────────────────────────────────────────
 
-export async function getLatestMBTIForUser(clerkId: string): Promise<{
+export type LatestMBTI = {
   type: string
   nickname: string
   emoji: string
   color: string
   takenAt: Date
-} | null> {
-  const user = await prisma.user.findUnique({ where: { clerkId } })
+}
+
+export async function getLatestMBTIForUser(clerkId: string): Promise<LatestMBTI | null> {
+  const user = await prisma.user.findUnique({
+    where:  { clerkId },
+    select: { id: true },
+  })
   if (!user) return null
 
   const result = await prisma.mBTIResult.findFirst({
@@ -383,6 +388,67 @@ export async function getLatestMBTIForUser(clerkId: string): Promise<{
     emoji:    result.profile.emoji,
     color:    result.profile.color,
     takenAt:  result.createdAt,
+  }
+}
+
+// ── Combined profile-page data (one user lookup, parallel sub-queries) ────────
+
+export async function getProfilePageData(clerkId: string): Promise<{
+  stats: ProfileStats
+  mbti:  LatestMBTI | null
+}> {
+  const user = await prisma.user.findUnique({
+    where:  { clerkId },
+    select: { id: true, createdAt: true },
+  })
+  if (!user) {
+    return {
+      stats: { totalAnalyses: 0, highChanceCount: 0, firstAnalysisAt: null, joinedAt: null },
+      mbti:  null,
+    }
+  }
+
+  const [grouped, first, mbtiRow] = await Promise.all([
+    prisma.predictionHistory.groupBy({
+      by:     ["chance"],
+      where:  { userId: user.id },
+      _count: { _all: true },
+    }),
+    prisma.predictionHistory.findFirst({
+      where:   { userId: user.id },
+      orderBy: { createdAt: "asc" },
+      select:  { createdAt: true },
+    }),
+    prisma.mBTIResult.findFirst({
+      where:   { userId: user.id },
+      orderBy: { createdAt: "desc" },
+      include: { profile: { select: { nickname: true, emoji: true, color: true } } },
+    }),
+  ])
+
+  let total = 0
+  let highChance = 0
+  for (const g of grouped) {
+    total += g._count._all
+    if (g.chance === "high") highChance = g._count._all
+  }
+
+  return {
+    stats: {
+      totalAnalyses:   total,
+      highChanceCount: highChance,
+      firstAnalysisAt: first?.createdAt ?? null,
+      joinedAt:        user.createdAt,
+    },
+    mbti: mbtiRow
+      ? {
+          type:     mbtiRow.mbtiType,
+          nickname: mbtiRow.profile.nickname,
+          emoji:    mbtiRow.profile.emoji,
+          color:    mbtiRow.profile.color,
+          takenAt:  mbtiRow.createdAt,
+        }
+      : null,
   }
 }
 

@@ -12,6 +12,8 @@ import type { TCAS_FOLIO_PDF } from "@/features/tcas-folio/data/content"
 const SIGN_IN_HREF = "/sign-in?redirect_url=/tcas-folio"
 
 // pdfjs-dist relies on browser-only APIs (e.g. DOMMatrix) — must not run during SSR.
+// Only imported when user actually opens fullscreen, so locked / in-tab visitors
+// never pay the cost of fetching the 100MB+ PDF or the pdf.js worker bundle.
 const PdfCanvasPreview = dynamic(
   () => import("@/features/tcas-folio/components/pdf-canvas-preview").then((m) => m.PdfCanvasPreview),
   {
@@ -40,23 +42,13 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
 
   return (
     <div>
-      <div className="relative">
-        <PdfCanvasPreview fileUrl={pdf.fileUrl} maxWidth={320} />
-        {locked && (
-          <Link
-            href={SIGN_IN_HREF}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/40 backdrop-blur-sm transition-colors hover:bg-black/50"
-            aria-label="เข้าสู่ระบบเพื่ออ่านเอกสาร"
-          >
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-green-700">
-              <Lock className="h-5 w-5" />
-            </span>
-            <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-gray-700">
-              เข้าสู่ระบบเพื่ออ่านเอกสาร
-            </span>
-          </Link>
-        )}
-      </div>
+      {/* In-tab cover — a lightweight placeholder. The real PDF is loaded only
+          when the user opens fullscreen (or is required to sign in first). */}
+      <CoverCard
+        title={pdf.title}
+        locked={locked}
+        onOpen={() => setFullscreen(true)}
+      />
 
       <div className="pt-3">
         <div className="flex items-start gap-3">
@@ -94,7 +86,7 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
         </div>
       </div>
 
-      {fullscreen && (
+      {fullscreen && !locked && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/90 motion-safe:animate-in motion-safe:fade-in duration-200">
           <div className="flex items-center justify-between px-4 py-3">
             <h3 className="truncate pr-4 text-sm font-semibold text-white">{pdf.title}</h3>
@@ -113,5 +105,54 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
         </div>
       )}
     </div>
+  )
+}
+
+function CoverCard({
+  title,
+  locked,
+  onOpen,
+}: {
+  title: string
+  locked: boolean
+  onOpen: () => void
+}) {
+  const inner = (
+    <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 p-6 text-center transition-colors group-hover:from-green-100 group-hover:to-emerald-200">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/90 shadow-sm">
+        {locked ? (
+          <Lock className="h-6 w-6 text-green-700" />
+        ) : (
+          <FileText className="h-6 w-6 text-green-700" />
+        )}
+      </div>
+      <p className="line-clamp-3 text-sm font-medium text-green-900/80">{title}</p>
+      <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-green-700">
+        {locked ? "เข้าสู่ระบบเพื่ออ่าน" : "แตะเพื่อเปิดอ่าน"}
+      </span>
+    </div>
+  )
+
+  if (locked) {
+    return (
+      <Link
+        href={SIGN_IN_HREF}
+        aria-label="เข้าสู่ระบบเพื่ออ่านเอกสาร"
+        className="group block"
+      >
+        {inner}
+      </Link>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="เปิดอ่านแบบเต็มจอ"
+      className="group block w-full"
+    >
+      {inner}
+    </button>
   )
 }

@@ -3,13 +3,13 @@
 import { useSignUp } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react"
+import { ArrowLeft, Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { AuthShell, AuthDivider } from "@/features/auth/components/auth-shell"
 import { OAuthButtons } from "@/features/auth/components/oauth-buttons"
-import { readPendingHistory, clearPendingHistory } from "@/features/analyze/components/analyze-form"
-import { savePendingHistoryAction } from "@/server/actions"
-import { claimAnonymousMBTIResult } from "@/lib/mbti-claim"
+import { AuthField, AuthSubmitButton, AuthErrorBanner } from "@/features/auth/components/form-primitives"
+import { buildAuthNavigate } from "@/features/auth/lib/sso-finalize"
+import { validateEmail } from "@/features/auth/lib/validation"
 
 type Step      = "details" | "verify"
 type Direction = "forward" | "back"
@@ -33,7 +33,11 @@ export default function SignUpPage() {
   const [step,      setStep]      = useState<Step>("details")
   const [direction, setDirection] = useState<Direction>("forward")
   const [password,  setPassword]  = useState("")
+  const [confirmPassword,  setConfirmPassword]  = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [emailError, setEmailError] = useState<string | undefined>(undefined)
+  const [nameError, setNameError]   = useState<{ first?: string; last?: string }>({})
+  const [confirmError, setConfirmError] = useState<string | undefined>(undefined)
 
   const loading  = submitting
   const animClass = direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"
@@ -46,14 +50,34 @@ export default function SignUpPage() {
   async function handleDetails(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
+    const email     = (form.get("email")     as string).trim()
+    const firstName = (form.get("firstName") as string).trim()
+    const lastName  = (form.get("lastName")  as string).trim()
+
+    const nameErrs = {
+      first: firstName ? undefined : "กรุณากรอกชื่อ",
+      last:  lastName  ? undefined : "กรุณากรอกนามสกุล",
+    }
+    const emailErr   = validateEmail(email)
+    const confirmErr = password !== confirmPassword ? "รหัสผ่านไม่ตรงกัน" : undefined
+
+    if (nameErrs.first || nameErrs.last || emailErr || confirmErr) {
+      setNameError(nameErrs)
+      setEmailError(emailErr)
+      setConfirmError(confirmErr)
+      return
+    }
+    setNameError({})
+    setEmailError(undefined)
+    setConfirmError(undefined)
 
     setSubmitting(true)
     try {
       const { error } = await signUp.password({
-        emailAddress: form.get("email")     as string,
-        password:     form.get("password")  as string,
-        firstName:    (form.get("firstName") as string) || undefined,
-        lastName:     (form.get("lastName")  as string) || undefined,
+        emailAddress: email,
+        password,
+        firstName,
+        lastName,
       })
       if (error) return
 
@@ -83,20 +107,7 @@ export default function SignUpPage() {
   }
 
   async function finalize() {
-    await signUp.finalize({
-      navigate: async ({ session, decorateUrl }) => {
-        const pending = readPendingHistory()
-        if (pending) {
-          await savePendingHistoryAction(pending.facultyId, pending.userScore)
-          clearPendingHistory()
-        }
-        await claimAnonymousMBTIResult()
-        const dest = session?.currentTask ? `/sign-up/tasks/${session.currentTask.key}` : "/"
-        const url  = decorateUrl(dest)
-        if (url.startsWith("http")) window.location.href = url
-        else router.push(url)
-      },
-    })
+    await signUp.finalize({ navigate: buildAuthNavigate(router, "sign-up") })
   }
 
   async function handleOAuth(
@@ -125,46 +136,63 @@ export default function SignUpPage() {
           </>
         )}
 
-        {errors?.global?.[0] && (
-          <div className="animate-error-reveal mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
-            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <span>{errors.global[0].message}</span>
-          </div>
-        )}
+        <AuthErrorBanner error={errors?.global?.[0]?.message} />
 
         {step === "details" ? (
-          <form onSubmit={handleDetails} className="space-y-4">
+          <form onSubmit={handleDetails} noValidate className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <Field
+              <AuthField
                 id="firstName" name="firstName" type="text"
-                label="ชื่อ" autoComplete="given-name"
-                error={errors?.fields?.firstName?.message}
+                label="ชื่อ" autoComplete="given-name" required
+                placeholder="ใจดี"
+                onChange={() => nameError.first && setNameError(s => ({ ...s, first: undefined }))}
+                error={nameError.first ?? errors?.fields?.firstName?.message}
               />
-              <Field
+              <AuthField
                 id="lastName" name="lastName" type="text"
-                label="นามสกุล" autoComplete="family-name"
-                error={errors?.fields?.lastName?.message}
+                label="นามสกุล" autoComplete="family-name" required
+                placeholder="วิทยา"
+                onChange={() => nameError.last && setNameError(s => ({ ...s, last: undefined }))}
+                error={nameError.last ?? errors?.fields?.lastName?.message}
               />
             </div>
 
-            <Field
+            <AuthField
               id="email" name="email" type="email"
               label="อีเมล" autoComplete="email" required
-              error={errors?.fields?.emailAddress?.message}
+              placeholder="jaidee.w@example.com"
+              onChange={() => emailError && setEmailError(undefined)}
+              error={emailError ?? errors?.fields?.emailAddress?.message}
             />
 
             <PasswordField
               value={password}
-              onChange={setPassword}
+              onChange={(v) => {
+                setPassword(v)
+                if (confirmError && v === confirmPassword) setConfirmError(undefined)
+              }}
               serverError={errors?.fields?.password?.message}
+            />
+
+            <AuthField
+              id="confirmPassword" name="confirmPassword" type="password"
+              label="ยืนยันรหัสผ่าน" autoComplete="new-password" required
+              placeholder="กรอกรหัสผ่านอีกครั้ง"
+              value={confirmPassword}
+              onChange={(e) => {
+                const v = e.target.value
+                setConfirmPassword(v)
+                if (confirmError && v === password) setConfirmError(undefined)
+              }}
+              error={confirmError}
             />
 
             {/* Clerk bot-protection widget */}
             <div id="clerk-captcha" />
 
-            <SubmitButton loading={loading} label="กำลังสร้างบัญชี…">
+            <AuthSubmitButton loading={loading} label="กำลังสร้างบัญชี…">
               สมัครสมาชิก
-            </SubmitButton>
+            </AuthSubmitButton>
           </form>
         ) : (
           <form onSubmit={handleVerify} className="space-y-5">
@@ -173,9 +201,9 @@ export default function SignUpPage() {
               error={errors?.fields?.code?.message}
             />
 
-            <SubmitButton loading={loading} label="กำลังยืนยัน…">
+            <AuthSubmitButton loading={loading} label="กำลังยืนยัน…">
               ยืนยันอีเมล
-            </SubmitButton>
+            </AuthSubmitButton>
 
             <div className="flex items-center justify-between pt-1">
               <button
@@ -243,7 +271,10 @@ function OtpInput({ name, error }: { name: string; error?: string }) {
 
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium text-gray-700">รหัสยืนยัน</label>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        รหัสยืนยัน
+        <span className="ml-0.5 text-red-500" aria-hidden="true">*</span>
+      </label>
       <div className="flex gap-2" onPaste={handlePaste}>
         {digits.map((d, i) => (
           <input
@@ -318,33 +349,6 @@ function ResendButton({ onResend }: { onResend: () => void }) {
   )
 }
 
-// ── Form primitives ───────────────────────────────────────────────────────────
-
-function Field({
-  id, label, error, ...inputProps
-}: React.InputHTMLAttributes<HTMLInputElement> & { id: string; label: string; error?: string }) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-gray-700">
-        {label}
-      </label>
-      <input
-        id={id}
-        className={cn(
-          "h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-gray-900 outline-none",
-          "placeholder:text-gray-400 transition-colors duration-150",
-          "focus:border-green-400 focus:ring-2 focus:ring-green-100",
-          error ? "border-red-300" : "border-gray-200"
-        )}
-        {...inputProps}
-      />
-      {error && (
-        <p className="mt-1 animate-error-reveal text-xs text-red-600">{error}</p>
-      )}
-    </div>
-  )
-}
-
 // ── Password strength ─────────────────────────────────────────────────────────
 
 type Strength = "empty" | "short" | "weak" | "fair" | "strong"
@@ -369,14 +373,24 @@ const STRENGTH_CFG: Record<Strength, { bars: number; color: string; label: strin
 function PasswordField({
   value, onChange, serverError,
 }: { value: string; onChange: (v: string) => void; serverError?: string }) {
+  const [focused, setFocused] = useState(false)
   const strength = getStrength(value)
   const cfg      = STRENGTH_CFG[strength]
   const hasError = !!serverError || strength === "short"
+
+  const rules = [
+    { label: "อย่างน้อย 8 ตัวอักษร", ok: value.length >= 8 },
+    { label: "มีตัวพิมพ์ใหญ่ (A-Z)", ok: /[A-Z]/.test(value) },
+    { label: "มีตัวพิมพ์เล็ก (a-z)", ok: /[a-z]/.test(value) },
+    { label: "มีตัวเลข (0-9)",       ok: /[0-9]/.test(value) },
+  ]
+  const showRules = focused || (value.length > 0 && strength !== "strong")
 
   return (
     <div>
       <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700">
         รหัสผ่าน
+        <span className="ml-0.5 text-red-500" aria-hidden="true">*</span>
       </label>
       <input
         id="password" name="password" type="password"
@@ -384,6 +398,8 @@ function PasswordField({
         placeholder="อย่างน้อย 8 ตัวอักษร"
         value={value}
         onChange={e => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         className={cn(
           "h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-gray-900 outline-none",
           "placeholder:text-gray-400 transition-colors duration-150",
@@ -391,6 +407,26 @@ function PasswordField({
           hasError ? "border-red-300" : "border-gray-200"
         )}
       />
+
+      {/* Requirements checklist — shows on focus or while password isn't yet strong */}
+      {showRules && (
+        <ul className="mt-2 animate-step-reveal space-y-1 rounded-xl bg-gray-50 px-3 py-2.5">
+          {rules.map(r => (
+            <li
+              key={r.label}
+              className={cn(
+                "flex items-center gap-1.5 text-xs transition-colors duration-150",
+                r.ok ? "text-green-700" : "text-gray-500"
+              )}
+            >
+              {r.ok
+                ? <Check className="h-3.5 w-3.5 text-green-600" />
+                : <X     className="h-3.5 w-3.5 text-gray-400" />}
+              {r.label}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {/* Strength meter — animates in on first keystroke */}
       {value && (
@@ -423,31 +459,3 @@ function PasswordField({
   )
 }
 
-// ── Submit button ─────────────────────────────────────────────────────────────
-
-function SubmitButton({
-  children, loading, label,
-}: { children: React.ReactNode; loading?: boolean; label?: string }) {
-  return (
-    <button
-      type="submit"
-      disabled={loading}
-      className={cn(
-        "mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl",
-        "bg-green-600 text-sm font-semibold text-white",
-        "transition-all duration-150",
-        "hover:bg-green-700",
-        "active:scale-[0.97]",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
-      )}
-    >
-      {loading ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {label ?? "กำลังดำเนินการ…"}
-        </>
-      ) : children}
-    </button>
-  )
-}

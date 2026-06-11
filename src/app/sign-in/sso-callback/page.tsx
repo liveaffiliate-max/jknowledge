@@ -1,57 +1,81 @@
 "use client"
 
 /**
- * Landing page after OAuth provider redirects back.
- * Clerk has already exchanged the authorization code on its servers by this
- * point — signIn.status should be "complete". We just need to finalize the
- * session and redirect the user home.
+ * Landing page after OAuth provider redirects back during sign-in.
+ *
+ * Possible outcomes from Clerk:
+ *   1. signIn.status === "complete"      → existing user → finalize sign-in
+ *   2. signIn.isTransferable === true    → new user (no Clerk account yet)
+ *                                          → transfer to signUp (progressive sign-up)
+ *   3. needs_second_factor / needs_new_password → back to /sign-in to handle
+ *   4. existingSession                    → already signed in → activate session
  */
 
-import { useSignIn } from "@clerk/nextjs"
+import { useClerk, useSignIn, useSignUp } from "@clerk/nextjs"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { Loader2 } from "lucide-react"
-import { readPendingHistory, clearPendingHistory } from "@/features/analyze/components/analyze-form"
-import { savePendingHistoryAction } from "@/server/actions"
-import { claimAnonymousMBTIResult } from "@/lib/mbti-claim"
+import { buildAuthNavigate } from "@/features/auth/lib/sso-finalize"
 
 export default function SignInSSOCallback() {
-  const { signIn, fetchStatus } = useSignIn()
+  const clerk = useClerk()
+  const { signIn } = useSignIn()
+  const { signUp } = useSignUp()
   const router = useRouter()
+  const hasRun = useRef(false)
 
   useEffect(() => {
-    // Wait until Clerk finishes resolving the OAuth response
-    if (fetchStatus !== "idle") return
-    if (!signIn) return
+    if (!clerk.loaded || hasRun.current) return
+    hasRun.current = true
 
-    if (signIn.status === "complete") {
-      signIn.finalize({
-        navigate: async ({ decorateUrl }) => {
-          // Migrate any analysis the user did while anonymous
-          try {
-            const pending = readPendingHistory()
-            if (pending) {
-              await savePendingHistoryAction(pending.facultyId, pending.userScore)
-              clearPendingHistory()
-            }
-            await claimAnonymousMBTIResult()
-          } catch { /* best effort */ }
+    const navigateSignIn = buildAuthNavigate(router, "sign-in")
+    const navigateSignUp = buildAuthNavigate(router, "sign-up")
 
-          const url = decorateUrl("/")
-          if (url.startsWith("http")) window.location.href = url
-          else router.push(url)
-        },
-      })
-    } else {
-      // Unexpected state — fall back to sign-in page
-      router.replace("/sign-in")
-    }
-  }, [signIn?.status, fetchStatus]) // eslint-disable-line react-hooks/exhaustive-deps
+    ;(async () => {
+      try {
+        // 1. Existing user → finalize sign-in
+        if (signIn.status === "complete") {
+          await signIn.finalize({ navigate: navigateSignIn })
+          return
+        }
+
+        // 2. No Clerk user yet → transfer to sign-up (auto-create account)
+        if (signIn.isTransferable) {
+          await signUp.create({ transfer: true })
+          if (signUp.status === "complete") {
+            await signUp.finalize({ navigate: navigateSignUp })
+            return
+          }
+          router.replace("/sign-up")
+          return
+        }
+
+        // 3. MFA / new password required
+        if (signIn.status === "needs_second_factor" || signIn.status === "needs_new_password") {
+          router.replace("/sign-in")
+          return
+        }
+
+        // 4. Already signed in
+        const sessionId = signIn.existingSession?.sessionId || signUp.existingSession?.sessionId
+        if (sessionId) {
+          await clerk.setActive({ session: sessionId, navigate: navigateSignIn })
+          return
+        }
+
+        router.replace("/sign-in")
+      } catch {
+        hasRun.current = false
+        router.replace("/sign-in")
+      }
+    })()
+  }, [clerk, signIn, signUp, router])
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-gray-50">
       <Loader2 className="h-8 w-8 animate-spin text-green-600" />
       <p className="text-sm text-gray-500">กำลังเข้าสู่ระบบ…</p>
+      <div id="clerk-captcha" />
     </div>
   )
 }

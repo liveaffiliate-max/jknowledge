@@ -9,9 +9,15 @@ export const metadata: Metadata = {
   description: "คู่มือ PDF และวิดีโอสอนทำพอร์ตโฟลิโอสำหรับยื่น TCAS รอบ Portfolio ครบทุกขั้นตอน",
 }
 
+// The PDF lives on Vercel Blob; warm up DNS + TLS so the eventual range
+// requests start ~150ms sooner when the user opens fullscreen.
+const PDF_ORIGIN = "https://pztddn9vmk4bwwny.public.blob.vercel-storage.com"
+
 export default function TcasFolioPage() {
   return (
     <div className="flex min-h-screen flex-col">
+      <link rel="preconnect" href={PDF_ORIGIN} crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href={PDF_ORIGIN} />
       <Header />
 
       <main className="flex-1 bg-gray-50">

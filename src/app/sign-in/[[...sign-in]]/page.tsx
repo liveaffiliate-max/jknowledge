@@ -1,16 +1,16 @@
 "use client"
 
 import { useSignIn } from "@clerk/nextjs"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { ArrowLeft } from "lucide-react"
 import { AuthShell, AuthDivider } from "@/features/auth/components/auth-shell"
 import { OAuthButtons } from "@/features/auth/components/oauth-buttons"
-import { readPendingHistory, clearPendingHistory } from "@/features/analyze/components/analyze-form"
-import { savePendingHistoryAction } from "@/server/actions"
-import { claimAnonymousMBTIResult } from "@/lib/mbti-claim"
+import { AuthField, AuthSubmitButton, AuthErrorBanner } from "@/features/auth/components/form-primitives"
+import { buildAuthNavigate } from "@/features/auth/lib/sso-finalize"
+import { useClerkErrorToast } from "@/features/auth/lib/use-clerk-error-toast"
+import { validateEmail } from "@/features/auth/lib/validation"
+import { useToast } from "@/components/ui/toaster"
 
 type Step = "credentials" | "mfa"
 type MFAMode = "email" | "backup"
@@ -18,10 +18,14 @@ type MFAMode = "email" | "backup"
 export default function SignInPage() {
   const { signIn, errors } = useSignIn()
   const router = useRouter()
+  const { toast } = useToast()
   const [step,    setStep]    = useState<Step>("credentials")
   const [mfaMode, setMfaMode] = useState<MFAMode>("email")
   const [direction, setDirection] = useState<"forward" | "back">("forward")
   const [submitting, setSubmitting] = useState(false)
+  const [emailError, setEmailError] = useState<string | undefined>(undefined)
+
+  useClerkErrorToast(errors)
 
   function advance(s: Step) { setDirection("forward"); setStep(s) }
   function retreat(s: Step) { setDirection("back");    setStep(s) }
@@ -31,11 +35,20 @@ export default function SignInPage() {
   async function handleCredentials(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
+    const email = (form.get("email") as string).trim()
+
+    const emailErr = validateEmail(email)
+    if (emailErr) {
+      setEmailError(emailErr)
+      toast(emailErr, "error")
+      return
+    }
+    setEmailError(undefined)
 
     setSubmitting(true)
     try {
       const { error } = await signIn.password({
-        identifier: form.get("email") as string,
+        identifier: email,
         password: form.get("password") as string,
       })
       if (error) return
@@ -70,23 +83,7 @@ export default function SignInPage() {
   }
 
   async function finalize() {
-    await signIn.finalize({
-      navigate: async ({ session, decorateUrl }) => {
-        // Migrate any analysis done while anonymous → PredictionHistory
-        const pending = readPendingHistory()
-        if (pending) {
-          await savePendingHistoryAction(pending.facultyId, pending.userScore)
-          clearPendingHistory()
-        }
-        // Claim an anonymous MBTI result if the user took the quiz before signing in
-        await claimAnonymousMBTIResult()
-
-        const dest = session?.currentTask ? `/sign-in/tasks/${session.currentTask.key}` : "/"
-        const url = decorateUrl(dest)
-        if (url.startsWith("http")) window.location.href = url
-        else router.push(url)
-      },
-    })
+    await signIn.finalize({ navigate: buildAuthNavigate(router, "sign-in") })
   }
 
   async function handleOAuth(
@@ -120,34 +117,31 @@ export default function SignInPage() {
           </>
         )}
 
-        {errors?.global?.[0] && (
-          <div className="animate-error-reveal mb-4 flex items-start gap-2 rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
-            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-            <span>{errors.global[0].message}</span>
-          </div>
-        )}
+        <AuthErrorBanner error={errors?.global?.[0]?.message} />
 
         {step === "credentials" ? (
-          <form onSubmit={handleCredentials} className="space-y-4">
-            <Field id="email" name="email" type="email" label="อีเมล"
-              autoComplete="email" required error={errors?.fields?.identifier?.message} />
-            <Field id="password" name="password" type="password" label="รหัสผ่าน"
+          <form onSubmit={handleCredentials} noValidate className="space-y-4">
+            <AuthField id="email" name="email" type="email" label="อีเมล"
+              autoComplete="email" required
+              onChange={() => emailError && setEmailError(undefined)}
+              error={emailError ?? errors?.fields?.identifier?.message} />
+            <AuthField id="password" name="password" type="password" label="รหัสผ่าน"
               autoComplete="current-password" required error={errors?.fields?.password?.message}
               trailingLink={{ href: "/sign-in/forgot-password", text: "ลืมรหัสผ่าน?" }} />
-            <SubmitButton loading={loading} label="กำลังเข้าสู่ระบบ…">เข้าสู่ระบบ</SubmitButton>
+            <AuthSubmitButton loading={loading} label="กำลังเข้าสู่ระบบ…">เข้าสู่ระบบ</AuthSubmitButton>
           </form>
         ) : (
           <form onSubmit={handleMFA} className="space-y-4">
             {isBackup ? (
-              <Field key="backup" id="code" name="code" type="text" label="Backup code"
+              <AuthField key="backup" id="code" name="code" type="text" label="Backup code"
                 autoComplete="off" required placeholder="xxxxxxxx-xxxx"
                 error={errors?.fields?.code?.message} />
             ) : (
-              <Field key="otp" id="code" name="code" type="text" label="รหัส OTP 6 หลัก"
+              <AuthField key="otp" id="code" name="code" type="text" label="รหัส OTP 6 หลัก"
                 inputMode="numeric" maxLength={6} autoComplete="one-time-code" required
                 error={errors?.fields?.code?.message} />
             )}
-            <SubmitButton loading={loading} label="กำลังยืนยัน…">ยืนยัน</SubmitButton>
+            <AuthSubmitButton loading={loading} label="กำลังยืนยัน…">ยืนยัน</AuthSubmitButton>
 
             <div className="flex items-center justify-between pt-1">
               <button type="button" onClick={() => retreat("credentials")}
@@ -167,69 +161,3 @@ export default function SignInPage() {
   )
 }
 
-// ── Form primitives (kept local — auth-specific styling) ─────────────────────
-
-function Field({
-  id,
-  label,
-  trailingLink,
-  error,
-  ...inputProps
-}: React.InputHTMLAttributes<HTMLInputElement> & {
-  id:    string
-  label: string
-  error?: string
-  trailingLink?: { href: string; text: string }
-}) {
-  return (
-    <div>
-      <div className="mb-1.5 flex items-center justify-between">
-        <label htmlFor={id} className="text-sm font-medium text-gray-700">
-          {label}
-        </label>
-        {trailingLink && (
-          <Link
-            href={trailingLink.href}
-            className="text-xs text-gray-500 hover:text-green-700"
-          >
-            {trailingLink.text}
-          </Link>
-        )}
-      </div>
-      <input
-        id={id}
-        className={cn(
-          "h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-gray-900 outline-none transition-colors",
-          "placeholder:text-gray-400",
-          "focus:border-green-400 focus:ring-2 focus:ring-green-100",
-          error ? "border-red-300" : "border-gray-200"
-        )}
-        {...inputProps}
-      />
-      {error && <p className="mt-1 animate-error-reveal text-xs text-red-600">{error}</p>}
-    </div>
-  )
-}
-
-function SubmitButton({
-  children, loading, label,
-}: { children: React.ReactNode; loading?: boolean; label?: string }) {
-  return (
-    <button
-      type="submit"
-      disabled={loading}
-      className={cn(
-        "mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl",
-        "bg-green-600 text-sm font-semibold text-white",
-        "transition-all duration-150 active:scale-[0.97]",
-        "hover:bg-green-700",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-green-200 focus-visible:ring-offset-2",
-        "disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
-      )}
-    >
-      {loading ? (
-        <><Loader2 className="h-4 w-4 animate-spin" />{label ?? "กำลังดำเนินการ…"}</>
-      ) : children}
-    </button>
-  )
-}

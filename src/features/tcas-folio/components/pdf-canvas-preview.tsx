@@ -50,13 +50,15 @@ export function PdfCanvasPreview({ fileUrl, maxWidth = 320 }: { fileUrl: string;
   return (
     <div>
       <div ref={containerRef} className="flex justify-center overflow-hidden rounded-xl bg-gray-100 p-2">
-        {width > 0 && (
-          <Document
-            file={fileUrl}
-            options={PDF_LOAD_OPTIONS}
-            onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-            loading={PAGE_LOADING}
-          >
+        {/* Start fetching the PDF immediately on mount — don't block on the
+            ResizeObserver firing. Only the Page render waits for `width`. */}
+        <Document
+          file={fileUrl}
+          options={PDF_LOAD_OPTIONS}
+          onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+          loading={PAGE_LOADING}
+        >
+          {width > 0 ? (
             <div
               key={pageNumber}
               className={cn(
@@ -71,8 +73,10 @@ export function PdfCanvasPreview({ fileUrl, maxWidth = 320 }: { fileUrl: string;
                 loading={PAGE_LOADING}
               />
             </div>
-          </Document>
-        )}
+          ) : (
+            PAGE_LOADING
+          )}
+        </Document>
       </div>
 
       {numPages > 0 && (

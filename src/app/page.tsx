@@ -2,9 +2,11 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Header from "@/components/layout/header";
-import { ArrowRight, GraduationCap } from "lucide-react";
+import { ArrowRight, Check, GraduationCap, PlayCircle } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { CountUp } from "@/components/animations/count-up";
+import { TCAS_FOLIO_EPISODES } from "@/features/tcas-folio/data/content";
+import { getYoutubeVideoId } from "@/features/tcas-folio/utils/youtube";
 
 const featuredUniversities = [
   "จุฬาลงกรณ์มหาวิทยาลัย",
@@ -202,6 +204,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Featured: TCAS Folio ── */}
+      <TcasFolioFeature />
+
       {/* Footer + CTA */}
       <footer className="border-t border-gray-100 bg-white px-4 py-6">
         <div className="mx-auto max-w-6xl space-y-4">
@@ -231,5 +236,86 @@ export default function HomePage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function TcasFolioFeature() {
+  const ep1 = TCAS_FOLIO_EPISODES[0];
+  const videoId = getYoutubeVideoId(ep1.youtubeUrl);
+  // hqdefault (480x360) is guaranteed by YouTube for every video; maxresdefault
+  // can 404 for older videos so we pick the safe one.
+  const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+
+  const highlights = [
+    "โครงพอร์ต 10 หน้า ที่ตรงคณะที่อยากเข้า",
+    "วิธีใช้ระบบ TCASFolio ขั้นตอนต่อขั้นตอน",
+    "10 คำถามสัมภาษณ์รอบพอร์ตที่ต้องเจอ",
+  ];
+
+  return (
+    <section className="bg-gray-50 px-4 py-16 sm:py-20">
+      <div className="mx-auto max-w-5xl">
+        <FadeIn>
+          <Link
+            href="/tcas-folio"
+            className="group block overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all hover:border-green-200 hover:shadow-md"
+          >
+            <div className="flex flex-col lg:flex-row">
+              {/* Thumbnail */}
+              <div className="relative aspect-video w-full overflow-hidden bg-gray-900 lg:aspect-auto lg:w-[48%] lg:flex-shrink-0">
+                <img
+                  src={thumbnail}
+                  alt={ep1.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/10">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-green-700 shadow-lg transition-transform group-hover:scale-110">
+                    <PlayCircle className="h-9 w-9" strokeWidth={1.5} />
+                  </span>
+                </div>
+                <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                  3 ตอน · เริ่มเรียนฟรี
+                </span>
+              </div>
+
+              {/* Copy */}
+              <div className="flex flex-1 flex-col justify-center p-6 sm:p-8 lg:p-10">
+                <span className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                  เนื้อหาพิเศษ
+                </span>
+                <h2
+                  className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl"
+                  style={{ textWrap: "balance" } as React.CSSProperties}
+                >
+                  คู่มือทำพอร์ตโฟลิโอ TCAS
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-gray-500 sm:text-base">
+                  วิดีโอ 3 ตอน + PDF คู่มือ ครบทุกขั้นตอนตั้งแต่วางโครงพอร์ต ใช้ระบบ TCASFolio
+                  จนถึงเตรียมสัมภาษณ์รอบ Portfolio
+                </p>
+
+                <ul className="mt-5 space-y-2.5">
+                  {highlights.map((item) => (
+                    <li key={item} className="flex items-start gap-2.5 text-sm text-gray-700">
+                      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      </span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-green-700 transition-colors group-hover:text-green-800">
+                  เปิดดูคู่มือ TCAS Folio
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        </FadeIn>
+      </div>
+    </section>
   );
 }
