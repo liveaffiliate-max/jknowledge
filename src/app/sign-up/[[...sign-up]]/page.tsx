@@ -28,13 +28,14 @@ const STEP_CONFIG = {
 } satisfies Record<Step, { title: string; subtitle: string; toggle: object }>
 
 export default function SignUpPage() {
-  const { signUp, errors, fetchStatus } = useSignUp()
+  const { signUp, errors } = useSignUp()
   const router    = useRouter()
   const [step,      setStep]      = useState<Step>("details")
   const [direction, setDirection] = useState<Direction>("forward")
   const [password,  setPassword]  = useState("")
+  const [submitting, setSubmitting] = useState(false)
 
-  const loading  = fetchStatus === "fetching"
+  const loading  = submitting
   const animClass = direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"
 
   function advance(s: Step) { setDirection("forward"); setStep(s) }
@@ -46,29 +47,39 @@ export default function SignUpPage() {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
 
-    const { error } = await signUp.password({
-      emailAddress: form.get("email")     as string,
-      password:     form.get("password")  as string,
-      firstName:    (form.get("firstName") as string) || undefined,
-      lastName:     (form.get("lastName")  as string) || undefined,
-    })
-    if (error) return
+    setSubmitting(true)
+    try {
+      const { error } = await signUp.password({
+        emailAddress: form.get("email")     as string,
+        password:     form.get("password")  as string,
+        firstName:    (form.get("firstName") as string) || undefined,
+        lastName:     (form.get("lastName")  as string) || undefined,
+      })
+      if (error) return
 
-    if (signUp.status === "complete") { await finalize(); return }
+      if (signUp.status === "complete") { await finalize(); return }
 
-    const { error: sendError } = await signUp.verifications.sendEmailCode()
-    if (!sendError) advance("verify")
+      const { error: sendError } = await signUp.verifications.sendEmailCode()
+      if (!sendError) advance("verify")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function handleVerify(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
 
-    const { error } = await signUp.verifications.verifyEmailCode({
-      code: form.get("code") as string,
-    })
-    if (error) return
-    if (signUp.status === "complete") await finalize()
+    setSubmitting(true)
+    try {
+      const { error } = await signUp.verifications.verifyEmailCode({
+        code: form.get("code") as string,
+      })
+      if (error) return
+      if (signUp.status === "complete") await finalize()
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function finalize() {

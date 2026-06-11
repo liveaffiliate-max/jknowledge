@@ -16,32 +16,38 @@ type Step = "credentials" | "mfa"
 type MFAMode = "email" | "backup"
 
 export default function SignInPage() {
-  const { signIn, errors, fetchStatus } = useSignIn()
+  const { signIn, errors } = useSignIn()
   const router = useRouter()
   const [step,    setStep]    = useState<Step>("credentials")
   const [mfaMode, setMfaMode] = useState<MFAMode>("email")
   const [direction, setDirection] = useState<"forward" | "back">("forward")
+  const [submitting, setSubmitting] = useState(false)
 
   function advance(s: Step) { setDirection("forward"); setStep(s) }
   function retreat(s: Step) { setDirection("back");    setStep(s) }
 
-  const loading = fetchStatus === "fetching"
+  const loading = submitting
 
   async function handleCredentials(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
 
-    const { error } = await signIn.password({
-      identifier: form.get("email") as string,
-      password: form.get("password") as string,
-    })
-    if (error) return
+    setSubmitting(true)
+    try {
+      const { error } = await signIn.password({
+        identifier: form.get("email") as string,
+        password: form.get("password") as string,
+      })
+      if (error) return
 
-    if (signIn.status === "needs_second_factor" || signIn.status === "needs_client_trust") {
-      await signIn.mfa.sendEmailCode()
-      advance("mfa")
-    } else if (signIn.status === "complete") {
-      await finalize()
+      if (signIn.status === "needs_second_factor" || signIn.status === "needs_client_trust") {
+        await signIn.mfa.sendEmailCode()
+        advance("mfa")
+      } else if (signIn.status === "complete") {
+        await finalize()
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -50,12 +56,17 @@ export default function SignInPage() {
     const form = new FormData(e.currentTarget)
     const code = form.get("code") as string
 
-    const { error } =
-      mfaMode === "backup"
-        ? await signIn.mfa.verifyBackupCode({ code })
-        : await signIn.mfa.verifyEmailCode({ code })
-    if (error) return
-    if (signIn.status === "complete") await finalize()
+    setSubmitting(true)
+    try {
+      const { error } =
+        mfaMode === "backup"
+          ? await signIn.mfa.verifyBackupCode({ code })
+          : await signIn.mfa.verifyEmailCode({ code })
+      if (error) return
+      if (signIn.status === "complete") await finalize()
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function finalize() {
@@ -128,11 +139,11 @@ export default function SignInPage() {
         ) : (
           <form onSubmit={handleMFA} className="space-y-4">
             {isBackup ? (
-              <Field id="code" name="code" type="text" label="Backup code"
+              <Field key="backup" id="code" name="code" type="text" label="Backup code"
                 autoComplete="off" required placeholder="xxxxxxxx-xxxx"
                 error={errors?.fields?.code?.message} />
             ) : (
-              <Field id="code" name="code" type="text" label="รหัส OTP 6 หลัก"
+              <Field key="otp" id="code" name="code" type="text" label="รหัส OTP 6 หลัก"
                 inputMode="numeric" maxLength={6} autoComplete="one-time-code" required
                 error={errors?.fields?.code?.message} />
             )}
