@@ -202,6 +202,17 @@
   to   { opacity: 1; transform: translateX(0); }
 }
 
+/* Full-width page turn — used by the PDF viewer's prev/next navigation */
+@keyframes page-slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes page-slide-in-left {
+  from { opacity: 0; transform: translateX(-100%); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 /* OTP digit pop — used with stagger delay */
 @keyframes otp-digit-in {
   from { opacity: 0; transform: translateY(6px) scale(0.92); }
@@ -252,6 +263,13 @@
   }
   .animate-slide-in-left {
     animation: slide-in-from-left 260ms var(--ease-out-expo) both;
+  }
+  /* PDF page-turn transitions */
+  .animate-page-slide-right {
+    animation: page-slide-in-right 280ms var(--ease-out-expo) both;
+  }
+  .animate-page-slide-left {
+    animation: page-slide-in-left 280ms var(--ease-out-expo) both;
   }
   /* OTP stagger */
   .animate-otp-digit {

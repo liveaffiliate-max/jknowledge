@@ -17,6 +17,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "img.clerk.com" },
       { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
+      { protocol: "https", hostname: "img.youtube.com" },
     ],
     // Prefer modern formats — AVIF first, WebP fallback. Cuts logo bytes ~40-60%.
     formats: ["image/avif", "image/webp"],
