@@ -6,7 +6,14 @@ import { Home, BarChart2, Landmark, Brain, LayoutDashboard, Briefcase, Lock } fr
 import { useAuth } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
 
-const BASE_ITEMS = [
+interface NavItem {
+  href:  string
+  label: string
+  icon:  typeof Home
+  gated?: boolean
+}
+
+const BASE_ITEMS: NavItem[] = [
   { href: "/",           label: "หน้าหลัก",  icon: Home           },
   { href: "/analyze",    label: "วิเคราะห์",  icon: BarChart2      },
   { href: "/scores",     label: "คะแนน",     icon: Landmark       },
@@ -14,7 +21,7 @@ const BASE_ITEMS = [
   { href: "/tcas-folio", label: "Folio",     icon: Briefcase, gated: true },
 ]
 
-const DASHBOARD_ITEM = { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }
+const DASHBOARD_ITEM: NavItem = { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }
 
 export function BottomNav() {
   const pathname  = usePathname()
@@ -27,8 +34,7 @@ export function BottomNav() {
     <nav className="sm:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border/50 bg-white/95 backdrop-blur-sm">
       <div className={`grid grid-cols-${NAV_ITEMS.length}`}>
         {NAV_ITEMS.map((item) => {
-          const { href, label, icon: Icon } = item
-          const gated = "gated" in item && item.gated
+          const { href, label, icon: Icon, gated } = item
           const active =
             href === "/" ? pathname === "/" : pathname.startsWith(href)
 
