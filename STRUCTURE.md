@@ -1,6 +1,6 @@
 # Project Structure — jknowledge
 
-> อัปเดตล่าสุด: 2026-06-05
+> อัปเดตล่าสุด: 2026-06-11
 
 ---
 
@@ -8,13 +8,18 @@
 
 **Stage: MVP กำลังพัฒนา**
 
-โปรเจกต์มี scaffold พร้อม features หลัก 3 อย่าง:
-- ✅ TCAS Score Analyzer (หน้า `/analyze`) — ดู [`context/features/tcas-analysis.md`](features/tcas-analysis.md)
-- ✅ MBTI Recommendation System (หน้า `/mbti`) — ดู [`context/features/mbti.md`](features/mbti.md)
-- ✅ Historical Score Browser (หน้า `/scores`) — ดู [`context/features/history-score.md`](features/history-score.md)
-- ✅ Authentication (Clerk + OAuth 5 providers) — ดู [`context/features/auth.md`](features/auth.md)
-- ✅ Database schema ด้วย Prisma + PostgreSQL — ดู [`context/database.md`](database.md)
+โปรเจกต์มี scaffold พร้อม features หลัก:
+- ✅ TCAS Score Analyzer (หน้า `/analyze`) — ดู [`context/features/tcas-analysis.md`](context/features/tcas-analysis.md)
+- ✅ MBTI Recommendation System (หน้า `/mbti`, `/mbti/[type]`) — ดู [`context/features/mbti.md`](context/features/mbti.md)
+- ✅ Historical Score Browser (หน้า `/scores`, `/scores/[uni]`, `/scores/[uni]/[fac]`) — ดู [`context/features/history-score.md`](context/features/history-score.md)
+- ✅ TCAS Calculator + Min-Scores (หน้า `/tcas/calculator`, `/tcas/min-scores`)
+- ✅ TCASfolio — คู่มือพอร์ตโฟลิโอ PDF + วิดีโอ (หน้า `/tcas-folio`)
+- ✅ Authentication (Clerk + OAuth 5 providers) — ดู [`context/features/auth.md`](context/features/auth.md)
+- ✅ User Dashboard / Profile (หน้า `/dashboard`, `/profile`)
+- ✅ Database schema ด้วย Prisma + PostgreSQL — ดู [`context/database.md`](context/database.md)
 - ✅ ข้อมูล TCAS ย้อนหลัง 64–69 (CSV files)
+- ✅ Analytics (GA4 + Meta Pixel) + Cookie Consent — ดู [`context/features/privacy.md`](context/features/privacy.md)
+- ✅ SEO: sitemap, robots, structured data
 
 ---
 
@@ -28,7 +33,7 @@
 | typescript | ^6.0.3 | ✅ devDep |
 | tailwindcss | ^4 | ✅ devDep |
 | @tailwindcss/postcss | ^4 | ✅ devDep |
-| shadcn | 4.8.0 | ✅ |
+| shadcn | ^4.8.0 | ✅ |
 | clsx | ^2.1.1 | ✅ via shadcn |
 | tailwind-merge | ^3.6.0 | ✅ via shadcn |
 | lucide-react | ^1.16.0 | ✅ via shadcn |
@@ -48,6 +53,12 @@
 | playwright | ^1.60.0 | ✅ devDep (testing) |
 | eslint | ^9 | ✅ devDep |
 | eslint-config-next | 16.2.6 | ✅ devDep |
+| @next/third-parties | ^16.2.7 | ✅ GA4 loader |
+| @vercel/speed-insights | ^2.0.0 | ✅ |
+| html-to-image | ^1.11.13 | ✅ MBTI shareable card |
+| react-pdf | ^10.4.1 | ✅ PDF viewer (TCASfolio) |
+| pdfjs-dist | ^5.4.296 | ✅ transitive (react-pdf) |
+| wawoff2 | ^2.0.1 | ✅ devDep |
 
 ---
 
@@ -59,48 +70,149 @@ jknowledge/
 │   ├── app/
 │   │   ├── __clerk/
 │   │   │   └── [...path]/route.ts   ← Clerk proxy route
+│   │   ├── api/
+│   │   │   └── webhooks/
+│   │   │       └── clerk/route.ts   ← Clerk webhook (user lifecycle → DB sync)
 │   │   ├── analyze/
+│   │   │   ├── error.tsx
+│   │   │   ├── loading.tsx
 │   │   │   └── page.tsx             ← TCAS Score Analyzer page
+│   │   ├── dashboard/
+│   │   │   ├── _components/
+│   │   │   │   └── dashboard-list.tsx
+│   │   │   ├── loading.tsx
+│   │   │   └── page.tsx             ← ประวัติการวิเคราะห์ (protected)
 │   │   ├── mbti/
+│   │   │   ├── [type]/
+│   │   │   │   └── page.tsx         ← MBTI result + คณะแนะนำ (SSG)
+│   │   │   ├── error.tsx
+│   │   │   ├── loading.tsx
 │   │   │   └── page.tsx             ← MBTI Quiz page
+│   │   ├── privacy/
+│   │   │   └── page.tsx             ← Privacy policy
+│   │   ├── profile/
+│   │   │   ├── _components/
+│   │   │   │   ├── avatar-upload.tsx
+│   │   │   │   ├── delete-account-button.tsx
+│   │   │   │   ├── edit-name-form.tsx
+│   │   │   │   └── sign-out-button.tsx
+│   │   │   └── page.tsx             ← Profile settings (protected)
+│   │   ├── result/
+│   │   │   └── [id]/
+│   │   │       └── page.tsx         ← Shared analysis result (public)
 │   │   ├── scores/
+│   │   │   ├── [universitySlug]/
+│   │   │   │   ├── [facultySlug]/
+│   │   │   │   │   └── page.tsx     ← Score detail + trend
+│   │   │   │   └── page.tsx         ← Faculty list ของมหาวิทยาลัย
+│   │   │   ├── error.tsx
+│   │   │   ├── loading.tsx
 │   │   │   └── page.tsx             ← Historical Score Browser
 │   │   ├── sign-in/
-│   │   │   └── [[...sign-in]]/page.tsx  ← Clerk sign-in
+│   │   │   ├── [[...sign-in]]/page.tsx   ← Clerk sign-in
+│   │   │   ├── forgot-password/page.tsx
+│   │   │   └── sso-callback/page.tsx
 │   │   ├── sign-up/
-│   │   │   └── [[...sign-up]]/page.tsx  ← Clerk sign-up
+│   │   │   ├── [[...sign-up]]/page.tsx   ← Clerk sign-up
+│   │   │   └── sso-callback/page.tsx
+│   │   ├── tcas/
+│   │   │   ├── calculator/page.tsx  ← TCAS score calculator (standalone)
+│   │   │   └── min-scores/
+│   │   │       ├── _components/filter.tsx
+│   │   │       └── page.tsx         ← Min-score lookup table
+│   │   ├── tcas-folio/
+│   │   │   └── page.tsx             ← TCASfolio: PDF + video course player
+│   │   ├── terms/
+│   │   │   └── page.tsx             ← Terms of service
+│   │   ├── error.tsx                ← Root error boundary
 │   │   ├── favicon.ico
 │   │   ├── globals.css              ← Tailwind v4 + shadcn CSS variables
-│   │   ├── layout.tsx               ← Root layout (ClerkProvider, Header)
-│   │   └── page.tsx                 ← Home page
+│   │   ├── layout.tsx               ← Root layout (ClerkProvider, Header, analytics)
+│   │   ├── loading.tsx              ← Root loading state
+│   │   ├── not-found.tsx            ← 404 page
+│   │   ├── page.tsx                 ← Home page
+│   │   ├── robots.ts                ← robots.txt (SEO)
+│   │   └── sitemap.ts               ← sitemap.xml (SEO)
 │   │
 │   ├── components/
+│   │   ├── animations/
+│   │   │   ├── count-up.tsx         ← Animated number counter
+│   │   │   └── fade-in.tsx          ← Fade-in scroll animation
 │   │   ├── layout/
-│   │   │   └── header.tsx           ← Site header (nav + auth)
-│   │   └── ui/                      ← shadcn/ui components
-│   │       ├── badge.tsx
-│   │       ├── button.tsx
-│   │       ├── card.tsx
-│   │       ├── input.tsx
-│   │       └── select.tsx
+│   │   │   ├── auth-layout.tsx      ← Shared layout for sign-in/sign-up
+│   │   │   ├── bottom-nav.tsx       ← Mobile bottom navigation
+│   │   │   ├── header.tsx           ← Site header (nav + auth)
+│   │   │   ├── mobile-menu.tsx      ← Mobile nav drawer
+│   │   │   ├── page-transition.tsx  ← Route transition animation
+│   │   │   └── profile-avatar-link.tsx
+│   │   ├── ui/                      ← shadcn/ui components
+│   │   │   ├── badge.tsx
+│   │   │   ├── breadcrumb.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── error-page.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── scroll-to-top.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── skeleton.tsx
+│   │   │   └── toaster.tsx
+│   │   ├── analytics-loader.tsx     ← GA4 + Meta Pixel loader (consent-gated)
+│   │   ├── cookie-consent.tsx       ← Cookie consent banner
+│   │   ├── meta-pixel.tsx           ← Meta Pixel script component
+│   │   └── university-logo.tsx      ← University logo image with fallback
 │   │
 │   ├── features/
 │   │   ├── analyze/
+│   │   │   ├── actions/
+│   │   │   │   └── get-mbti-match.ts      ← Server action: MBTI ↔ คณะ matching
 │   │   │   └── components/
 │   │   │       ├── analyze-form.tsx       ← Form กรอกคะแนน + Combobox มหาวิทยาลัย/คณะ
+│   │   │       ├── mbti-match-badge.tsx   ← Badge แสดงความเข้ากันได้กับ MBTI
 │   │   │       ├── result-card.tsx        ← แสดงผลการวิเคราะห์
 │   │   │       ├── score-position-bar.tsx ← Bar แสดง position ของคะแนน
 │   │   │       ├── score-trend-chart.tsx  ← Recharts trend graph
+│   │   │       ├── score-trend-chart-lazy.tsx ← Lazy-loaded wrapper
+│   │   │       ├── share-result-button.tsx← แชร์ผลลัพธ์ (html-to-image)
 │   │   │       └── weighted-inputs.tsx    ← Input น้ำหนักวิชา
 │   │   ├── auth/                           ← ดู context/features/auth.md
 │   │   │   ├── icons.tsx                  ← Provider brand SVGs (Google/LINE/Apple/FB/X)
 │   │   │   └── components/
 │   │   │       ├── auth-shell.tsx         ← Card + header + footer toggle + divider
 │   │   │       └── oauth-buttons.tsx      ← OAuth provider button group
-│   │   └── mbti/
-│   │       └── components/
-│   │           ├── mbti-quiz.tsx          ← Quiz component
-│   │           └── mbti-result-card.tsx   ← แสดงผล MBTI + คณะแนะนำ
+│   │   ├── mbti/
+│   │   │   ├── actions/
+│   │   │   │   ├── get-faculties.ts       ← Server action: คณะแนะนำตาม MBTI
+│   │   │   │   ├── get-insights.ts        ← Server action: AI insight ต่อ type
+│   │   │   │   └── save-result.ts         ← Server action: บันทึกผล MBTI ลง DB
+│   │   │   ├── components/
+│   │   │   │   ├── mbti-faculty-list.tsx  ← รายการคณะแนะนำ
+│   │   │   │   ├── mbti-personal-insight.tsx
+│   │   │   │   ├── mbti-quiz.tsx          ← Quiz component (cross-feature pool)
+│   │   │   │   ├── mbti-result-card.tsx   ← แสดงผล MBTI + คณะแนะนำ
+│   │   │   │   ├── mbti-reveal.tsx        ← Reveal animation สำหรับผลลัพธ์
+│   │   │   │   ├── mbti-share-modal.tsx   ← Modal แชร์ผลลัพธ์
+│   │   │   │   └── mbti-shareable-card.tsx← การ์ดสำหรับ export เป็นรูป
+│   │   │   └── hooks/
+│   │   │       └── use-session-seed.ts    ← Deterministic quiz pool seed
+│   │   ├── scores/
+│   │   │   ├── components/
+│   │   │   │   ├── faculty-list.tsx
+│   │   │   │   ├── score-history-chart.tsx
+│   │   │   │   ├── score-history-chart-lazy.tsx
+│   │   │   │   ├── score-table.tsx
+│   │   │   │   └── university-grid.tsx
+│   │   │   └── lib/
+│   │   │       └── field-labels.ts        ← Label mapping สำหรับ FacultyField
+│   │   └── tcas-folio/
+│   │       ├── components/
+│   │       │   ├── pdf-canvas-preview.tsx ← Custom canvas PDF viewer (react-pdf, no native UI)
+│   │       │   ├── pdf-preview-card.tsx   ← PDF card + fullscreen modal
+│   │       │   ├── tcas-folio-player.tsx  ← Course player (video + sidebar tabs)
+│   │       │   └── video-facade.tsx       ← YouTube facade (thumbnail → click-to-load)
+│   │       ├── data/
+│   │       │   └── content.ts             ← PDF + episode metadata
+│   │       └── utils/
+│   │           └── youtube.ts             ← getYoutubeVideoId() URL normalizer
 │   │
 │   ├── data/
 │   │   ├── tcas64-69/               ← Raw CSV ข้อมูล TCAS ย้อนหลัง
@@ -135,8 +247,16 @@ jknowledge/
 │   │           └── prismaNamespaceBrowser.ts
 │   │
 │   ├── lib/
+│   │   ├── analytics.ts             ← GA4 / Meta Pixel event helpers
+│   │   ├── consent.ts               ← Cookie consent state helpers
+│   │   ├── mbti-claim.ts            ← Link MBTI result กับ user หลัง login
+│   │   ├── normalize-faculty.ts     ← Normalize ชื่อคณะ/สาขา
 │   │   ├── prisma.ts                ← Prisma client singleton
+│   │   ├── site.ts                  ← Site metadata constants (URL, ชื่อ, social)
 │   │   ├── subjects.ts              ← รายวิชา TCAS + น้ำหนัก
+│   │   ├── thai-regions.ts          ← ภูมิภาค/จังหวัดของไทย
+│   │   ├── thai-synonyms.ts         ← คำพ้องความหมายภาษาไทยสำหรับค้นหา
+│   │   ├── university-logo.ts       ← Resolve โลโก้มหาวิทยาลัย
 │   │   └── utils.ts                 ← cn() utility
 │   │
 │   ├── server/
@@ -175,6 +295,9 @@ jknowledge/
 │   │   ├── mbti.md                  ← MBTI quiz + faculty recommendation flow
 │   │   ├── privacy.md               ← Privacy/PDPA compliance guide + roadmap
 │   │   └── tcas-analysis.md         ← Score analyzer + admission probability
+│   ├── mbti-audit.md                ← MBTI quiz audit notes
+│   ├── mbti-quiz-redesign.md        ← MBTI quiz redesign notes
+│   ├── mbti-roadmap.md              ← MBTI roadmap
 │   ├── planning.md                  ← Active planning notes
 │   ├── progress.md                  ← Overall progress tracker
 │   └── roadmap/
@@ -240,11 +363,23 @@ Enum:
 | `/scores/[uni]/[fac]` | `app/scores/[universitySlug]/[facultySlug]/page.tsx` | Score detail + trend |
 | `/mbti` | `app/mbti/page.tsx` | MBTI Quiz |
 | `/mbti/[type]` | `app/mbti/[type]/page.tsx` | MBTI result + คณะแนะนำ (SSG) |
+| `/tcas/calculator` | `app/tcas/calculator/page.tsx` | TCAS score calculator (standalone) |
+| `/tcas/min-scores` | `app/tcas/min-scores/page.tsx` | ตารางคะแนนต่ำสุดย้อนหลัง |
+| `/tcas-folio` | `app/tcas-folio/page.tsx` | TCASfolio — คู่มือ PDF + วิดีโอทำพอร์ตโฟลิโอ |
 | `/dashboard` | `app/dashboard/page.tsx` | ประวัติการวิเคราะห์ (protected) |
-| `/sign-in` | Custom UI (Clerk Future API + OAuth) | ดู [`features/auth.md`](features/auth.md) |
-| `/sign-up` | Custom UI (Clerk Future API + OAuth) | ดู [`features/auth.md`](features/auth.md) |
+| `/profile` | `app/profile/page.tsx` | ตั้งค่าโปรไฟล์ (protected) |
+| `/result/[id]` | `app/result/[id]/page.tsx` | ผลวิเคราะห์ที่แชร์ (public) |
+| `/privacy` | `app/privacy/page.tsx` | นโยบายความเป็นส่วนตัว |
+| `/terms` | `app/terms/page.tsx` | ข้อกำหนดการใช้งาน |
+| `/sign-in` | Custom UI (Clerk Future API + OAuth) | ดู [`features/auth.md`](context/features/auth.md) |
+| `/sign-in/forgot-password` | `app/sign-in/forgot-password/page.tsx` | รีเซ็ตรหัสผ่าน |
+| `/sign-in/sso-callback` | `app/sign-in/sso-callback/page.tsx` | OAuth callback |
+| `/sign-up` | Custom UI (Clerk Future API + OAuth) | ดู [`features/auth.md`](context/features/auth.md) |
+| `/sign-up/sso-callback` | `app/sign-up/sso-callback/page.tsx` | OAuth callback |
 | `/__clerk/[...path]` | Frontend API proxy | First-party cookie domain |
 | `/api/webhooks/clerk` | Webhook handler | User lifecycle → DB sync (Svix verified) |
+| `/sitemap.xml` | `app/sitemap.ts` | SEO sitemap |
+| `/robots.txt` | `app/robots.ts` | SEO robots |
 
 ---
 
@@ -307,11 +442,13 @@ npx tsx scripts/update-logos.ts
 2. ✅ shadcn/ui (v4.8.0, Tailwind v4)
 3. ✅ Folder structure (features/, components/, lib/, etc.)
 4. ✅ TCAS Score Calculator / Analyzer
-5. ✅ Authentication (Clerk + OAuth: Google/LINE/Apple/Facebook/X) — [`features/auth.md`](features/auth.md)
+5. ✅ Authentication (Clerk + OAuth: Google/LINE/Apple/Facebook/X) — [`features/auth.md`](context/features/auth.md)
 6. ✅ Historical Score Database schema (Prisma)
 7. ✅ MBTI System (16 types + faculty matching)
 8. ✅ Admission Prediction (chance + gap calculation)
 9. ✅ Dashboard (user history, protected route)
-10. ⬜ AI Advisor
-11. ⬜ SEO Pages
-12. ⬜ Community Features
+10. ✅ TCASfolio (Portfolio guide PDF + video player)
+11. ✅ Analytics + Cookie Consent (GA4, Meta Pixel)
+12. ✅ SEO Pages (sitemap, robots, privacy, terms)
+13. ⬜ AI Advisor
+14. ⬜ Community Features
