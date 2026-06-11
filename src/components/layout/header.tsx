@@ -3,6 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Lock } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Show } from "@clerk/nextjs"
@@ -10,9 +11,10 @@ import { MobileMenu } from "./mobile-menu"
 import { ProfileAvatarLink } from "./profile-avatar-link"
 
 const NAV_LINKS = [
-  { href: "/analyze", label: "วิเคราะห์คะแนน" },
-  { href: "/scores",  label: "คะแนนย้อนหลัง" },
-  { href: "/mbti",    label: "ทดสอบ MBTI" },
+  { href: "/analyze",    label: "วิเคราะห์คะแนน" },
+  { href: "/scores",     label: "คะแนนย้อนหลัง" },
+  { href: "/mbti",       label: "ทดสอบ MBTI" },
+  { href: "/tcas-folio", label: "TCAS Folio", gated: true },
 ]
 
 export default function Header() {
@@ -37,16 +39,21 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-          {NAV_LINKS.map(({ href, label }) => (
+          {NAV_LINKS.map(({ href, label, gated }) => (
             <Link
               key={href}
               href={href}
               className={cn(
-                "transition-colors hover:text-green-600",
+                "flex items-center gap-1 transition-colors hover:text-green-600",
                 pathname.startsWith(href) && "text-green-600 font-semibold"
               )}
             >
               {label}
+              {gated && (
+                <Show when="signed-out">
+                  <Lock className="h-3 w-3 text-gray-400" />
+                </Show>
+              )}
             </Link>
           ))}
           <Show when="signed-in">

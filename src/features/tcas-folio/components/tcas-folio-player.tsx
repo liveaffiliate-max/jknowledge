@@ -34,7 +34,7 @@ export function TcasFolioPlayer({
         </div>
         <div className="mt-4">
           <h2 className="text-base font-semibold text-gray-900">{activeEpisode.title}</h2>
-          <p className="mt-1 text-sm leading-relaxed text-gray-500">{activeEpisode.description}</p>
+          <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-gray-500">{activeEpisode.description}</p>
         </div>
       </div>
 

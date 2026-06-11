@@ -2,10 +2,14 @@
 
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
-import { FileText, Loader2, Maximize2, X } from "lucide-react"
+import Link from "next/link"
+import { FileText, Loader2, Lock, Maximize2, X } from "lucide-react"
+import { useAuth } from "@clerk/nextjs"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type { TCAS_FOLIO_PDF } from "@/features/tcas-folio/data/content"
+
+const SIGN_IN_HREF = "/sign-in?redirect_url=/tcas-folio"
 
 // pdfjs-dist relies on browser-only APIs (e.g. DOMMatrix) — must not run during SSR.
 const PdfCanvasPreview = dynamic(
@@ -22,6 +26,8 @@ const PdfCanvasPreview = dynamic(
 
 export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
   const [fullscreen, setFullscreen] = useState(false)
+  const { isSignedIn, isLoaded } = useAuth()
+  const locked = isLoaded && !isSignedIn
 
   useEffect(() => {
     if (!fullscreen) return
@@ -34,7 +40,23 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
 
   return (
     <div>
-      <PdfCanvasPreview fileUrl={pdf.fileUrl} maxWidth={320} />
+      <div className="relative">
+        <PdfCanvasPreview fileUrl={pdf.fileUrl} maxWidth={320} />
+        {locked && (
+          <Link
+            href={SIGN_IN_HREF}
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/40 backdrop-blur-sm transition-colors hover:bg-black/50"
+            aria-label="เข้าสู่ระบบเพื่ออ่านเอกสาร"
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-green-700">
+              <Lock className="h-5 w-5" />
+            </span>
+            <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-gray-700">
+              เข้าสู่ระบบเพื่ออ่านเอกสาร
+            </span>
+          </Link>
+        )}
+      </div>
 
       <div className="pt-3">
         <div className="flex items-start gap-3">
@@ -51,14 +73,24 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
         </div>
 
         <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => setFullscreen(true)}
-            className={cn(buttonVariants({ size: "lg" }), "w-full bg-green-600 text-white hover:bg-green-700 sm:w-auto")}
-          >
-            <Maximize2 className="h-4 w-4" />
-            เปิดอ่านแบบเต็มจอ
-          </button>
+          {locked ? (
+            <Link
+              href={SIGN_IN_HREF}
+              className={cn(buttonVariants({ size: "lg" }), "w-full bg-green-600 text-white hover:bg-green-700 sm:w-auto")}
+            >
+              <Lock className="h-4 w-4" />
+              เข้าสู่ระบบเพื่ออ่านเอกสาร
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setFullscreen(true)}
+              className={cn(buttonVariants({ size: "lg" }), "w-full bg-green-600 text-white hover:bg-green-700 sm:w-auto")}
+            >
+              <Maximize2 className="h-4 w-4" />
+              เปิดอ่านแบบเต็มจอ
+            </button>
+          )}
         </div>
       </div>
 

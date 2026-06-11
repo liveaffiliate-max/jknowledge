@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Lock } from "lucide-react"
 import { Show } from "@clerk/nextjs"
 import { ProfileAvatarLink } from "./profile-avatar-link"
 import { buttonVariants } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils"
 interface NavLink {
   href: string
   label: string
+  gated?: boolean
 }
 
 interface MobileMenuProps {
@@ -42,19 +43,24 @@ export function MobileMenu({ links }: MobileMenuProps) {
       {/* Drawer — fixed below sticky header (h-16 = 64px) */}
       {open && (
         <div className="fixed inset-x-0 top-16 z-40 border-t border-border/50 bg-white px-4 pb-5 pt-3 space-y-1 shadow-sm">
-          {links.map(({ href, label }) => (
+          {links.map(({ href, label, gated }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setOpen(false)}
               className={cn(
-                "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                 pathname.startsWith(href)
                   ? "bg-green-50 text-green-700"
                   : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
               )}
             >
-              {label}
+              <span>{label}</span>
+              {gated && (
+                <Show when="signed-out">
+                  <Lock className="h-3.5 w-3.5 text-gray-400" />
+                </Show>
+              )}
             </Link>
           ))}
 
