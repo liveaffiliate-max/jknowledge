@@ -161,6 +161,72 @@ export async function analyzeAction(
     gap,
     latestMinScore: latest.minScore,
     latestAvgScore: latest.avgScore,
+    latestMaxScore: latest.maxScore,
+    latestSeats:    latest.seats,
     trend: calculateTrend(faculty.scores),
   }
+}
+
+// ── Lightweight faculty meta (used by compare hydration) ─────────────────────
+// Given just a facultyId, return enough to label a slot picker without
+// fetching every university's faculty list.
+
+export async function getFacultyMetaAction(facultyId: string): Promise<{
+  id:           string
+  name:         string
+  program:      string
+  majorName?:   string
+  detail?:      string
+  universityId: string
+} | null> {
+  if (!facultyId) return null
+  const faculty = await getFacultyWithScores(facultyId)
+  if (!faculty) return null
+  return {
+    id:           faculty.id,
+    name:         faculty.name,
+    program:      faculty.program,
+    majorName:    faculty.majorName,
+    detail:       faculty.detail,
+    universityId: faculty.universityId,
+  }
+}
+
+// ── Batch analyze for compare flow ────────────────────────────────────────────
+// Exploratory by design — does NOT persist to PredictionHistory.
+// Returns one slot per input, with null for faculties that have no historical data.
+
+export interface CompareAnalyzeInput {
+  facultyId: string
+  userScore: number
+}
+
+export async function getMultipleAnalysisAction(
+  entries: CompareAnalyzeInput[]
+): Promise<(AdmissionResult | null)[]> {
+  if (!entries.length) return []
+
+  return Promise.all(
+    entries.map(async ({ facultyId, userScore }) => {
+      if (!facultyId || isNaN(userScore)) return null
+
+      const faculty = await getFacultyWithScores(facultyId)
+      if (!faculty || faculty.scores.length === 0) return null
+
+      const sorted = [...faculty.scores].sort((a, b) => b.year - a.year)
+      const latest = sorted[0]
+
+      return {
+        faculty,
+        userScore,
+        chance: calculateAdmissionChance(userScore, latest.minScore, latest.avgScore),
+        gap:    userScore - latest.minScore,
+        latestMinScore: latest.minScore,
+        latestAvgScore: latest.avgScore,
+        latestMaxScore: latest.maxScore,
+        latestSeats:    latest.seats,
+        trend: calculateTrend(faculty.scores),
+      }
+    })
+  )
 }

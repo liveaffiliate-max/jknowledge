@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { CHANCE_CONFIG } from "@/utils/analyze"
@@ -5,6 +6,7 @@ import { ScoreTrendChartLazy as ScoreTrendChart } from "./score-trend-chart-lazy
 import { ScorePositionBar } from "./score-position-bar"
 import { ShareResultButton } from "./share-result-button"
 import { MBTIMatchBadge } from "./mbti-match-badge"
+import { getCanonicalMajorKey, majorSlugFromKey } from "@/lib/major-canonical"
 import type { AdmissionResult } from "@/types/tcas"
 import {
   TrendingUp,
@@ -15,6 +17,8 @@ import {
   XCircle,
   Users,
   AlertTriangle,
+  GitCompareArrows,
+  Building2,
   type LucideIcon,
 } from "lucide-react"
 
@@ -122,7 +126,28 @@ export function ResultCard({ result, onReset }: ResultCardProps) {
         {/* ── Share ── */}
         <ShareResultButton result={result} />
 
-        {/* ── Compare CTA ── */}
+        {/* ── Compare with other faculties (seeds compare page with this faculty) ── */}
+        <Link
+          href={`/analyze/compare?ids=${faculty.id}`}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-green-200 bg-white py-2.5 text-sm font-semibold text-green-700 transition-colors hover:bg-green-50"
+        >
+          <GitCompareArrows className="h-4 w-4" />
+          เปรียบเทียบกับคณะอื่น
+        </Link>
+
+        {/* ── See this faculty at other universities ── */}
+        <Link
+          href={`/analyze/compare/major/${majorSlugFromKey(getCanonicalMajorKey({
+            name:      faculty.name,
+            majorName: faculty.majorName,
+          }))}`}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-green-300 hover:bg-green-50 hover:text-green-700"
+        >
+          <Building2 className="h-4 w-4" />
+          ดูคณะนี้ที่มหาลัยอื่น
+        </Link>
+
+        {/* ── Reset CTA ── */}
         {onReset && (
           <button
             type="button"

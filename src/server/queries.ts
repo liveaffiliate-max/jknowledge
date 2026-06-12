@@ -1,6 +1,12 @@
 import { unstable_cache } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { normalizeDetail, normalizeMajor, normalizeProgram } from "@/lib/normalize-faculty"
+import {
+  getCanonicalMajorKey,
+  majorSlugFromKey,
+  parseMajorSlug,
+  type CanonicalMajorParts,
+} from "@/lib/major-canonical"
 import type {
   FacultyField,
   FacultyPreview,
@@ -8,6 +14,7 @@ import type {
   RequirementData,
   University,
   UniversityWithStats,
+  YearlyScore,
 } from "@/types/tcas"
 
 // ── Latest TCAS year ──────────────────────────────────────────────────────────
@@ -256,6 +263,158 @@ export async function getFacultyWithScores(
     { revalidate: 1800, tags: ["faculties", "tcas-scores"] }
   )()
 }
+
+// ── Major comparison (Phase 2) ───────────────────────────────────────────────
+// All universities that offer the same canonical major, with their latest stats
+// and full year history (for ranking + sparklines on the comparison page).
+
+export interface MajorComparisonEntry {
+  facultyId:       string
+  facultyName:     string
+  program:         string
+  majorName?:      string
+  detail?:         string
+  university:      University
+  latestYear:      number | null
+  latestMinScore:  number | null
+  latestAvgScore:  number | null
+  latestMaxScore:  number | null
+  latestSeats:     number | null
+  scoreCount:      number
+  scores:          YearlyScore[]
+}
+
+export interface MajorComparisonResult {
+  parts:      CanonicalMajorParts
+  entries:    MajorComparisonEntry[]
+  totalSeats: number | null
+  uniCount:   number
+}
+
+async function _getMajorComparison(slug: string): Promise<MajorComparisonResult | null> {
+  const parts = parseMajorSlug(slug)
+  if (!parts) return null
+
+  // Exact match — light whitespace cleanup is applied in getCanonicalMajorKey
+  // so the slug already reflects normalized form. If we move to fuzzier
+  // matching later (synonym tables), this is the single point to edit.
+  const rows = await prisma.faculty.findMany({
+    where: {
+      name:      parts.name,
+      majorName: parts.majorName,
+    },
+    include: {
+      university: true,
+      scores:     { orderBy: { year: "asc" } },
+    },
+  })
+  if (rows.length === 0) return null
+
+  // Dedupe by university: same uni can hold multiple Faculty rows for the same
+  // program (different programCode across years). Keep the row with the most
+  // scores — usually the most-complete history.
+  const byUni = new Map<string, typeof rows[number]>()
+  for (const f of rows) {
+    const existing = byUni.get(f.universityId)
+    if (!existing || f.scores.length > existing.scores.length) {
+      byUni.set(f.universityId, f)
+    }
+  }
+
+  const entries: MajorComparisonEntry[] = [...byUni.values()].map((f) => {
+    const sorted = [...f.scores].sort((a, b) => b.year - a.year)
+    const latest = sorted[0] ?? null
+    return {
+      facultyId:   f.id,
+      facultyName: f.name,
+      program:     normalizeProgram(f.program),
+      majorName:   normalizeMajor(f.majorName) || undefined,
+      detail:      normalizeDetail(f.detail, f.name) || undefined,
+      university: {
+        id:        f.university.id,
+        slug:      f.university.slug,
+        name:      f.university.name,
+        shortName: f.university.shortName,
+        location:  f.university.location,
+        color:     f.university.color,
+        logoUrl:   f.university.logoUrl ?? undefined,
+      },
+      latestYear:     latest?.year     ?? null,
+      latestMinScore: latest?.minScore ?? null,
+      latestAvgScore: latest?.avgScore ?? null,
+      latestMaxScore: latest?.maxScore ?? null,
+      latestSeats:    latest?.seats    ?? null,
+      scoreCount:     f.scores.length,
+      scores: f.scores.map((s) => ({
+        year:     s.year,
+        minScore: s.minScore,
+        avgScore: s.avgScore,
+        maxScore: s.maxScore ?? undefined,
+        seats:    s.seats    ?? undefined,
+      })),
+    }
+  })
+
+  // Sort entries by latest min score ascending (easiest first) — the most
+  // useful order for a student deciding which uni to target.
+  entries.sort((a, b) => {
+    const am = a.latestMinScore ?? Infinity
+    const bm = b.latestMinScore ?? Infinity
+    return am - bm
+  })
+
+  const totalSeats = entries.reduce<number | null>((acc, e) => {
+    if (e.latestSeats == null) return acc
+    return (acc ?? 0) + e.latestSeats
+  }, null)
+
+  return {
+    parts,
+    entries,
+    totalSeats,
+    uniCount: entries.length,
+  }
+}
+
+export async function getMajorComparison(slug: string): Promise<MajorComparisonResult | null> {
+  return unstable_cache(
+    () => _getMajorComparison(slug),
+    ["major-comparison", slug],
+    { revalidate: 3600, tags: ["faculties", "tcas-scores"] }
+  )()
+}
+
+// ── Popular major slugs (sitemap + suggestion lists) ─────────────────────────
+// Returns major canonical slugs offered at ≥ minUniCount universities, ordered
+// by participation count desc. Used by the sitemap to nudge SEO toward the
+// most search-worthy comparison pages.
+
+export const getPopularMajorSlugs = unstable_cache(
+  async (minUniCount = 3, limit = 60): Promise<Array<{ slug: string; uniCount: number }>> => {
+    const rows = await prisma.faculty.findMany({
+      select: {
+        name:         true,
+        majorName:    true,
+        universityId: true,
+      },
+    })
+
+    const buckets = new Map<string, Set<string>>()
+    for (const r of rows) {
+      const key = getCanonicalMajorKey(r)
+      if (!buckets.has(key)) buckets.set(key, new Set())
+      buckets.get(key)!.add(r.universityId)
+    }
+
+    return [...buckets.entries()]
+      .map(([key, unis]) => ({ slug: majorSlugFromKey(key), uniCount: unis.size }))
+      .filter((m) => m.uniCount >= minUniCount)
+      .sort((a, b) => b.uniCount - a.uniCount)
+      .slice(0, limit)
+  },
+  ["popular-major-slugs"],
+  { revalidate: 86400, tags: ["faculties"] }
+)
 
 // ── Profile stats ─────────────────────────────────────────────────────────────
 

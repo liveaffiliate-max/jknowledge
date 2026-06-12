@@ -3,12 +3,14 @@ import { unstable_cache } from "next/cache"
 import { prisma } from "@/lib/prisma"
 import { SITE_URL } from "@/lib/site"
 import { mbtiProfiles } from "@/data/mbti-types"
+import { getPopularMajorSlugs } from "@/server/queries"
 
 export const revalidate = 86400  // page-level: regenerate at most once per day
 
 const STATIC_ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }[] = [
   { path: "/",                  priority: 1.0, changeFrequency: "weekly"  },
   { path: "/analyze",           priority: 0.9, changeFrequency: "weekly"  },
+  { path: "/analyze/compare",   priority: 0.9, changeFrequency: "weekly"  },
   { path: "/scores",            priority: 0.9, changeFrequency: "weekly"  },
   { path: "/mbti",              priority: 0.9, changeFrequency: "monthly" },
   { path: "/tcas/min-scores",   priority: 0.8, changeFrequency: "weekly"  },
@@ -40,7 +42,10 @@ const getSitemapEntries = unstable_cache(
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
-  const { universities, faculties } = await getSitemapEntries()
+  const [{ universities, faculties }, popularMajors] = await Promise.all([
+    getSitemapEntries(),
+    getPopularMajorSlugs(),
+  ])
 
   const staticUrls: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
     url:             `${SITE_URL}${r.path}`,
@@ -70,5 +75,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority:        0.5,
   }))
 
-  return [...staticUrls, ...mbtiUrls, ...uniUrls, ...facultyUrls]
+  // Same-major comparison pages (Phase 2). Priority scales with uni count
+  // so high-coverage majors (e.g. แพทย์, วิศวะ) outrank niche ones.
+  const majorCompareUrls: MetadataRoute.Sitemap = popularMajors.map((m) => ({
+    url:             `${SITE_URL}/analyze/compare/major/${m.slug}`,
+    lastModified:    now,
+    changeFrequency: "monthly" as const,
+    priority:        Math.min(0.8, 0.5 + m.uniCount * 0.02),
+  }))
+
+  return [...staticUrls, ...mbtiUrls, ...uniUrls, ...facultyUrls, ...majorCompareUrls]
 }

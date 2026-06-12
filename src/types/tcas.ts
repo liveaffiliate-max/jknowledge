@@ -102,5 +102,20 @@ export interface AdmissionResult {
   gap: number
   latestMinScore: number
   latestAvgScore: number
+  latestMaxScore?: number
+  latestSeats?: number
   trend: "rising" | "falling" | "stable"
 }
+
+// ── Compare (Phase 1) ─────────────────────────────────────────────────────────
+// One entry per slot in the compare table. `result` is hydrated by
+// getMultipleAnalysisAction; null until the user has entered a score.
+
+export interface CompareEntry {
+  facultyId: string
+  userScore: number | null
+  result: AdmissionResult | null
+}
+
+export const COMPARE_MIN_SLOTS = 2
+export const COMPARE_MAX_SLOTS = 4

@@ -148,6 +148,31 @@ export function trackMBTIAnalyzeFromInsight(params: { mbtiType: string; facultyI
   })
 }
 
+// ── Compare events ────────────────────────────────────────────────────────────
+
+export function trackCompareAdd(params: { slotIndex: number; universityName: string; facultyName: string }) {
+  trackEvent("compare_add_slot", {
+    slot_index:      params.slotIndex,
+    university_name: params.universityName,
+    faculty_name:    params.facultyName,
+  })
+}
+
+export function trackCompareSubmit(params: { slotCount: number; hasWeights: boolean; userScore: number }) {
+  trackEvent("compare_submit", {
+    slot_count:        params.slotCount,
+    has_weights:       params.hasWeights,
+    user_score_bucket: bucketScore(params.userScore),
+  })
+}
+
+export function trackCompareShare(params: { slotCount: number; method: "copy" | "native" }) {
+  trackEvent("compare_share", {
+    slot_count: params.slotCount,
+    method:     params.method,
+  })
+}
+
 // ── Score browsing events ─────────────────────────────────────────────────────
 
 export function trackFacultyClick(params: {
