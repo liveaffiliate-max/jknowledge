@@ -8,15 +8,22 @@ import { Show } from "@clerk/nextjs"
 import { ProfileAvatarLink } from "./profile-avatar-link"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { withRedirect } from "@/features/auth/lib/validation"
 
 interface NavLink {
-  href: string
-  label: string
+  href:   string
+  label:  string
   gated?: boolean
+  exact?: boolean
 }
 
 interface MobileMenuProps {
   links: NavLink[]
+}
+
+function isLinkActive(pathname: string, href: string, exact?: boolean): boolean {
+  if (exact) return pathname === href
+  return pathname.startsWith(href)
 }
 
 export function MobileMenu({ links }: MobileMenuProps) {
@@ -43,14 +50,14 @@ export function MobileMenu({ links }: MobileMenuProps) {
       {/* Drawer — fixed below sticky header (h-16 = 64px) */}
       {open && (
         <div className="fixed inset-x-0 top-16 z-40 border-t border-border/50 bg-white px-4 pb-5 pt-3 space-y-1 shadow-sm">
-          {links.map(({ href, label, gated }) => (
+          {links.map(({ href, label, gated, exact }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setOpen(false)}
               className={cn(
                 "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                pathname.startsWith(href)
+                isLinkActive(pathname, href, exact)
                   ? "bg-green-50 text-green-700"
                   : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
               )}
@@ -82,7 +89,7 @@ export function MobileMenu({ links }: MobileMenuProps) {
             </Show>
             <Show when="signed-out">
               <Link
-                href="/sign-in"
+                href={withRedirect("/sign-in", pathname)}
                 onClick={() => setOpen(false)}
                 className={cn(
                   buttonVariants({ variant: "ghost", size: "sm" }),
@@ -92,7 +99,7 @@ export function MobileMenu({ links }: MobileMenuProps) {
                 เข้าสู่ระบบ
               </Link>
               <Link
-                href="/sign-up"
+                href={withRedirect("/sign-up", pathname)}
                 onClick={() => setOpen(false)}
                 className={cn(
                   buttonVariants({ size: "sm" }),

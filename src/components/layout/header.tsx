@@ -9,13 +9,21 @@ import { cn } from "@/lib/utils"
 import { Show } from "@clerk/nextjs"
 import { MobileMenu } from "./mobile-menu"
 import { ProfileAvatarLink } from "./profile-avatar-link"
+import { withRedirect } from "@/features/auth/lib/validation"
 
 const NAV_LINKS = [
-  { href: "/analyze",    label: "วิเคราะห์คะแนน" },
-  { href: "/scores",     label: "คะแนนย้อนหลัง" },
-  { href: "/mbti",       label: "ทดสอบ MBTI" },
-  { href: "/tcas-folio", label: "TCAS Folio", gated: true },
+  { href: "/analyze",          label: "วิเคราะห์คะแนน", exact: true },
+  { href: "/analyze/compare",  label: "เปรียบเทียบ" },
+  { href: "/scores",           label: "คะแนนย้อนหลัง" },
+  { href: "/mbti",             label: "ทดสอบ MBTI" },
+  { href: "/tcas-folio",       label: "TCAS Folio", gated: true },
 ]
+
+/** Active when href matches exactly (exact=true) or pathname is nested under href. */
+function isLinkActive(pathname: string, href: string, exact?: boolean): boolean {
+  if (exact) return pathname === href
+  return pathname.startsWith(href)
+}
 
 export default function Header() {
   const pathname = usePathname()
@@ -39,13 +47,13 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-          {NAV_LINKS.map(({ href, label, gated }) => (
+          {NAV_LINKS.map(({ href, label, gated, exact }) => (
             <Link
               key={href}
               href={href}
               className={cn(
                 "flex items-center gap-1 transition-colors hover:text-green-600",
-                pathname.startsWith(href) && "text-green-600 font-semibold"
+                isLinkActive(pathname, href, exact) && "text-green-600 font-semibold"
               )}
             >
               {label}
@@ -75,13 +83,13 @@ export default function Header() {
           <div className="hidden sm:flex items-center gap-2">
             <Show when="signed-out">
               <Link
-                href="/sign-in"
+                href={withRedirect("/sign-in", pathname)}
                 className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-gray-600 hover:text-green-600")}
               >
                 เข้าสู่ระบบ
               </Link>
               <Link
-                href="/sign-up"
+                href={withRedirect("/sign-up", pathname)}
                 className={cn(buttonVariants({ size: "sm" }), "bg-green-600 hover:bg-green-700 text-white")}
               >
                 สมัครสมาชิก

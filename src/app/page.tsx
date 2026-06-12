@@ -2,7 +2,7 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Header from "@/components/layout/header";
-import { ArrowRight, Check, GraduationCap, PlayCircle } from "lucide-react";
+import { ArrowRight, FileText, GraduationCap, PlayCircle, Sparkles } from "lucide-react";
 import { FadeIn } from "@/components/animations/fade-in";
 import { CountUp } from "@/components/animations/count-up";
 import { TCAS_FOLIO_EPISODES } from "@/features/tcas-folio/data/content";
@@ -73,6 +73,31 @@ export default function HomePage() {
             </Link>
           </div>
           <p className="mt-4 text-sm text-gray-500">ใช้เวลาไม่ถึง 2 นาที · ไม่ต้อง login</p>
+
+          {/* Secondary entry: TCAS Folio teaser — quieter alternative path */}
+          <div
+            className="mx-auto mt-10 flex max-w-xs items-center gap-3 text-xs text-gray-500"
+            aria-hidden
+          >
+            <span className="h-px flex-1 bg-gray-200" />
+            <span>หรือ</span>
+            <span className="h-px flex-1 bg-gray-200" />
+          </div>
+
+          <Link
+            href="/tcas-folio"
+            className="group mx-auto mt-4 inline-flex items-center gap-2.5 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm transition-colors hover:border-green-300 hover:bg-green-50/40"
+          >
+            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+              ใหม่
+            </span>
+            <span className="font-medium text-gray-700 group-hover:text-gray-900">
+              คู่มือทำพอร์ตโฟลิโอ TCAS
+            </span>
+            <span className="text-gray-300">·</span>
+            <span className="text-gray-600 group-hover:text-green-700">วิดีโอ + PDF</span>
+            <ArrowRight className="h-3.5 w-3.5 text-gray-500 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-green-600" />
+          </Link>
         </div>
       </section>
 
@@ -129,7 +154,7 @@ export default function HomePage() {
           </FadeIn>
 
           <FadeIn delay={200}>
-            <p className="mt-8 text-xs text-gray-400">อ้างอิงข้อมูลจากเว็บไซต์ mytcas</p>
+            <p className="mt-8 text-xs text-gray-500">อ้างอิงข้อมูลจากเว็บไซต์ mytcas</p>
           </FadeIn>
         </div>
       </section>
@@ -211,15 +236,16 @@ export default function HomePage() {
       <footer className="border-t border-gray-100 bg-white px-4 py-6">
         <div className="mx-auto max-w-6xl space-y-4">
           <nav aria-label="Footer links" className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
-            <Link href="/tcas/calculator"  className="hover:text-green-700">TCAS Calculator</Link>
-            <Link href="/tcas/min-scores"  className="hover:text-green-700">คะแนนต่ำสุด TCAS</Link>
-            <Link href="/scores"           className="hover:text-green-700">คะแนนย้อนหลัง</Link>
-            <Link href="/mbti"             className="hover:text-green-700">MBTI คณะ</Link>
-            <Link href="/privacy"          className="hover:text-green-700">ความเป็นส่วนตัว</Link>
-            <Link href="/terms"            className="hover:text-green-700">เงื่อนไข</Link>
+            <Link href="/tcas/calculator"   className="hover:text-green-700">TCAS Calculator</Link>
+            <Link href="/tcas/min-scores"   className="hover:text-green-700">คะแนนต่ำสุด TCAS</Link>
+            <Link href="/scores"            className="hover:text-green-700">คะแนนย้อนหลัง</Link>
+            <Link href="/analyze/compare"   className="hover:text-green-700">เปรียบเทียบคณะ</Link>
+            <Link href="/mbti"              className="hover:text-green-700">MBTI คณะ</Link>
+            <Link href="/privacy"           className="hover:text-green-700">ความเป็นส่วนตัว</Link>
+            <Link href="/terms"             className="hover:text-green-700">เงื่อนไข</Link>
           </nav>
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               © 2026 Jknowledge · อ้างอิงจาก mytcas · เป็นการประมาณการ ไม่ใช่ผลรับประกัน
             </p>
             <Link
@@ -246,10 +272,12 @@ function TcasFolioFeature() {
   // can 404 for older videos so we pick the safe one.
   const thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 
-  const highlights = [
-    "โครงพอร์ต 10 หน้า ที่ตรงคณะที่อยากเข้า",
-    "วิธีใช้ระบบ TCASFolio ขั้นตอนต่อขั้นตอน",
-    "10 คำถามสัมภาษณ์รอบพอร์ตที่ต้องเจอ",
+  // Concrete content from each episode — beats generic bullet benefits because
+  // it shows what they're actually getting in EP1/2/3.
+  const chapters = [
+    { ep: "EP 1", title: "TCASFolio + รอบ Portfolio คืออะไร" },
+    { ep: "EP 2", title: "พอร์ต 10 หน้า ที่ตรงคณะ" },
+    { ep: "EP 3", title: "ระบบ + 10 คำถามสัมภาษณ์" },
   ];
 
   return (
@@ -258,58 +286,80 @@ function TcasFolioFeature() {
         <FadeIn>
           <Link
             href="/tcas-folio"
-            className="group block overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all hover:border-green-200 hover:shadow-md"
+            className="group block overflow-hidden rounded-2xl border border-gray-100 bg-white transition-colors hover:border-green-200"
           >
             <div className="flex flex-col lg:flex-row">
-              {/* Thumbnail */}
+              {/* ── Thumbnail ── */}
               <div className="relative aspect-video w-full overflow-hidden bg-gray-900 lg:aspect-auto lg:w-[48%] lg:flex-shrink-0">
                 <img
                   src={thumbnail}
                   alt={ep1.title}
                   loading="lazy"
                   decoding="async"
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors group-hover:bg-black/10">
-                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/95 text-green-700 shadow-lg transition-transform group-hover:scale-110">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-transparent" />
+
+                {/* Play button — single solid affordance */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-green-700 shadow-lg transition-transform duration-300 group-hover:scale-105 motion-reduce:transform-none">
                     <PlayCircle className="h-9 w-9" strokeWidth={1.5} />
                   </span>
                 </div>
-                <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+
+                {/* Top-left badge */}
+                <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
                   3 ตอน · เริ่มเรียนฟรี
                 </span>
               </div>
 
-              {/* Copy */}
+              {/* ── Copy ── */}
               <div className="flex flex-1 flex-col justify-center p-6 sm:p-8 lg:p-10">
                 <span className="mb-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                  <Sparkles className="h-3 w-3" strokeWidth={2.5} />
                   เนื้อหาพิเศษ
                 </span>
+
                 <h2
                   className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl"
                   style={{ textWrap: "balance" } as React.CSSProperties}
                 >
                   คู่มือทำพอร์ตโฟลิโอ TCAS
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-gray-500 sm:text-base">
+
+                <p className="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base">
                   วิดีโอ 3 ตอน + PDF คู่มือ ครบทุกขั้นตอนตั้งแต่วางโครงพอร์ต ใช้ระบบ TCASFolio
                   จนถึงเตรียมสัมภาษณ์รอบ Portfolio
                 </p>
 
-                <ul className="mt-5 space-y-2.5">
-                  {highlights.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm text-gray-700">
-                      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700">
-                        <Check className="h-3 w-3" strokeWidth={3} />
+                {/* Episode chips */}
+                <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {chapters.map((ch) => (
+                    <div
+                      key={ch.ep}
+                      className="flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50/70 p-3"
+                    >
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold text-green-700 ring-1 ring-green-100">
+                        {ch.ep.replace("EP ", "")}
                       </span>
-                      <span>{item}</span>
-                    </li>
+                      <span className="text-xs font-medium leading-snug text-gray-700">
+                        {ch.title}
+                      </span>
+                    </div>
                   ))}
-                </ul>
+                </div>
+
+                <div className="mt-5 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 sm:w-fit">
+                  <FileText className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
+                  แถมฟรี PDF คู่มือดาวน์โหลดได้
+                </div>
 
                 <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-green-700 transition-colors group-hover:text-green-800">
                   เปิดดูคู่มือ TCAS Folio
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  <span className="relative inline-flex">
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+                  </span>
                 </div>
               </div>
             </div>
