@@ -51,7 +51,7 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
         received += value.length
         if (total) setProgress(Math.round((received / total) * 100))
       }
-      const blob = new Blob(chunks, { type: res.headers.get("Content-Type") ?? "application/pdf" })
+      const blob = new Blob(chunks as BlobPart[], { type: res.headers.get("Content-Type") ?? "application/pdf" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
