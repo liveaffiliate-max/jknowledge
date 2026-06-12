@@ -31,9 +31,10 @@ export async function migrateAnonymousData() {
  * Responsibilities:
  *  1. Run anonymous-data migration before redirecting
  *  2. Respect Clerk's session.currentTask (e.g. force MFA setup) by routing to /{prefix}/tasks/{key}
- *  3. Use decorateUrl so Clerk can append handshake params if needed
+ *  3. Send the user to `redirectTo` (default "/") so they land back where they came from
+ *  4. Use decorateUrl so Clerk can append handshake params if needed
  */
-export function buildAuthNavigate(router: Router, taskPrefix: TaskPrefix) {
+export function buildAuthNavigate(router: Router, taskPrefix: TaskPrefix, redirectTo: string = "/") {
   return async ({ session, decorateUrl }: NavigateArgs) => {
     await migrateAnonymousData()
 
@@ -42,7 +43,7 @@ export function buildAuthNavigate(router: Router, taskPrefix: TaskPrefix) {
       return
     }
 
-    const url = decorateUrl("/")
+    const url = decorateUrl(redirectTo)
     if (url.startsWith("http")) window.location.href = url
     else router.push(url)
   }

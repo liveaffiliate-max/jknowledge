@@ -1,7 +1,7 @@
 "use client"
 
 import { useSignUp } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { ArrowLeft, Check, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -9,7 +9,7 @@ import { AuthShell, AuthDivider } from "@/features/auth/components/auth-shell"
 import { OAuthButtons } from "@/features/auth/components/oauth-buttons"
 import { AuthField, AuthSubmitButton, AuthErrorBanner } from "@/features/auth/components/form-primitives"
 import { buildAuthNavigate } from "@/features/auth/lib/sso-finalize"
-import { validateEmail } from "@/features/auth/lib/validation"
+import { validateEmail, getSafeRedirect } from "@/features/auth/lib/validation"
 
 type Step      = "details" | "verify"
 type Direction = "forward" | "back"
@@ -25,11 +25,13 @@ const STEP_CONFIG = {
     subtitle: "เราส่งรหัส 6 หลักไปยังอีเมลของคุณแล้ว",
     toggle:   { question: "พบปัญหา?", linkText: "เริ่มใหม่", href: "/sign-up" },
   },
-} satisfies Record<Step, { title: string; subtitle: string; toggle: object }>
+} satisfies Record<Step, { title: string; subtitle: string; toggle: { question: string; linkText: string; href: string } }>
 
 export default function SignUpPage() {
   const { signUp, errors } = useSignUp()
   const router    = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = getSafeRedirect(searchParams.get("redirect_url"))
   const [step,      setStep]      = useState<Step>("details")
   const [direction, setDirection] = useState<Direction>("forward")
   const [password,  setPassword]  = useState("")
@@ -107,22 +109,27 @@ export default function SignUpPage() {
   }
 
   async function finalize() {
-    await signUp.finalize({ navigate: buildAuthNavigate(router, "sign-up") })
+    await signUp.finalize({ navigate: buildAuthNavigate(router, "sign-up", redirectTo) })
   }
 
   async function handleOAuth(
     strategy: "oauth_google" | "oauth_line" | "oauth_apple" | "oauth_facebook" | "oauth_x"
   ) {
+    const callback = `/sign-up/sso-callback?redirect_url=${encodeURIComponent(redirectTo)}`
     await signUp.sso({
       strategy,
-      redirectUrl:         "/",
-      redirectCallbackUrl: "/sign-up/sso-callback",
+      redirectUrl:         redirectTo,
+      redirectCallbackUrl: callback,
     })
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  const cfg = STEP_CONFIG[step]
+  const redirectQuery = redirectTo === "/" ? "" : `?redirect_url=${encodeURIComponent(redirectTo)}`
+  const cfg = {
+    ...STEP_CONFIG[step],
+    toggle: { ...STEP_CONFIG[step].toggle, href: `${STEP_CONFIG[step].toggle.href}${redirectQuery}` },
+  }
 
   return (
     <AuthShell title={cfg.title} subtitle={cfg.subtitle} toggle={cfg.toggle}>

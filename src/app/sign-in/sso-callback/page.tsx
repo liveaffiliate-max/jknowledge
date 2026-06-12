@@ -12,24 +12,27 @@
  */
 
 import { useClerk, useSignIn, useSignUp } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
 import { Loader2 } from "lucide-react"
 import { buildAuthNavigate } from "@/features/auth/lib/sso-finalize"
+import { getSafeRedirect } from "@/features/auth/lib/validation"
 
 export default function SignInSSOCallback() {
   const clerk = useClerk()
   const { signIn } = useSignIn()
   const { signUp } = useSignUp()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const hasRun = useRef(false)
 
   useEffect(() => {
     if (!clerk.loaded || hasRun.current) return
     hasRun.current = true
 
-    const navigateSignIn = buildAuthNavigate(router, "sign-in")
-    const navigateSignUp = buildAuthNavigate(router, "sign-up")
+    const redirectTo = getSafeRedirect(searchParams.get("redirect_url"))
+    const navigateSignIn = buildAuthNavigate(router, "sign-in", redirectTo)
+    const navigateSignUp = buildAuthNavigate(router, "sign-up", redirectTo)
 
     ;(async () => {
       try {
@@ -69,7 +72,7 @@ export default function SignInSSOCallback() {
         router.replace("/sign-in")
       }
     })()
-  }, [clerk, signIn, signUp, router])
+  }, [clerk, signIn, signUp, router, searchParams])
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-gray-50">

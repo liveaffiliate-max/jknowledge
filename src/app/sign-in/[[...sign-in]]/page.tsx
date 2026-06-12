@@ -1,7 +1,7 @@
 "use client"
 
 import { useSignIn } from "@clerk/nextjs"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { AuthShell, AuthDivider } from "@/features/auth/components/auth-shell"
@@ -9,7 +9,7 @@ import { OAuthButtons } from "@/features/auth/components/oauth-buttons"
 import { AuthField, AuthSubmitButton, AuthErrorBanner } from "@/features/auth/components/form-primitives"
 import { buildAuthNavigate } from "@/features/auth/lib/sso-finalize"
 import { useClerkErrorToast } from "@/features/auth/lib/use-clerk-error-toast"
-import { validateEmail } from "@/features/auth/lib/validation"
+import { validateEmail, getSafeRedirect } from "@/features/auth/lib/validation"
 import { useToast } from "@/components/ui/toaster"
 
 type Step = "credentials" | "mfa"
@@ -18,6 +18,8 @@ type MFAMode = "email" | "backup"
 export default function SignInPage() {
   const { signIn, errors } = useSignIn()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = getSafeRedirect(searchParams.get("redirect_url"))
   const { toast } = useToast()
   const [step,    setStep]    = useState<Step>("credentials")
   const [mfaMode, setMfaMode] = useState<MFAMode>("email")
@@ -83,28 +85,31 @@ export default function SignInPage() {
   }
 
   async function finalize() {
-    await signIn.finalize({ navigate: buildAuthNavigate(router, "sign-in") })
+    await signIn.finalize({ navigate: buildAuthNavigate(router, "sign-in", redirectTo) })
   }
 
   async function handleOAuth(
     strategy: "oauth_google" | "oauth_line" | "oauth_apple" | "oauth_facebook" | "oauth_x"
   ) {
+    // Preserve redirect_url through the OAuth round-trip so sso-callback can honour it
+    const callback = `/sign-in/sso-callback?redirect_url=${encodeURIComponent(redirectTo)}`
     await signIn.sso({
       strategy,
-      redirectUrl:         "/",
-      redirectCallbackUrl: "/sign-in/sso-callback",
+      redirectUrl:         redirectTo,
+      redirectCallbackUrl: callback,
     })
   }
 
   const isBackup  = mfaMode === "backup"
   const animClass = direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"
 
+  const redirectQuery = redirectTo === "/" ? "" : `?redirect_url=${encodeURIComponent(redirectTo)}`
   const cfg = step === "credentials"
     ? { title: "เข้าสู่ระบบ", subtitle: "ยินดีต้อนรับกลับมา",
-        toggle: { question: "ยังไม่มีบัญชี?", linkText: "สมัครสมาชิก", href: "/sign-up" } }
+        toggle: { question: "ยังไม่มีบัญชี?", linkText: "สมัครสมาชิก", href: `/sign-up${redirectQuery}` } }
     : { title: "ยืนยันตัวตน",
         subtitle: isBackup ? "กรอก backup code ที่บันทึกไว้" : "กรอกรหัส OTP ที่ส่งไปยังอีเมลของคุณ",
-        toggle: { question: "พบปัญหา?", linkText: "เริ่มใหม่", href: "/sign-in" } }
+        toggle: { question: "พบปัญหา?", linkText: "เริ่มใหม่", href: `/sign-in${redirectQuery}` } }
 
   return (
     <AuthShell title={cfg.title} subtitle={cfg.subtitle} toggle={cfg.toggle}>
