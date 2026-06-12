@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { FileText, Loader2, Lock, Maximize2, X } from "lucide-react"
+import { Download, FileText, Loader2, Lock, Maximize2, X } from "lucide-react"
 import { useAuth } from "@clerk/nextjs"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -28,8 +28,45 @@ const PdfCanvasPreview = dynamic(
 
 export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
   const [fullscreen, setFullscreen] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [progress, setProgress] = useState(0) // 0-100; 0 when total unknown
   const { isSignedIn, isLoaded } = useAuth()
   const locked = isLoaded && !isSignedIn
+
+  async function handleDownload() {
+    if (downloading) return
+    setDownloading(true)
+    setProgress(0)
+    try {
+      const res = await fetch(pdf.fileUrl)
+      if (!res.ok || !res.body) throw new Error("fetch failed")
+      const total = Number(res.headers.get("Content-Length")) || 0
+      const reader = res.body.getReader()
+      const chunks: Uint8Array[] = []
+      let received = 0
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        chunks.push(value)
+        received += value.length
+        if (total) setProgress(Math.round((received / total) * 100))
+      }
+      const blob = new Blob(chunks, { type: res.headers.get("Content-Type") ?? "application/pdf" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${pdf.title}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      window.open(pdf.fileUrl, "_blank", "noopener,noreferrer")
+    } finally {
+      setDownloading(false)
+      setProgress(0)
+    }
+  }
 
   useEffect(() => {
     if (!fullscreen) return
@@ -64,7 +101,7 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
           </div>
         </div>
 
-        <div className="mt-3">
+        <div className="mt-3 flex flex-row flex-wrap gap-2">
           {locked ? (
             <Link
               href={SIGN_IN_HREF}
@@ -74,14 +111,38 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
               เข้าสู่ระบบเพื่ออ่านเอกสาร
             </Link>
           ) : (
-            <button
-              type="button"
-              onClick={() => setFullscreen(true)}
-              className={cn(buttonVariants({ size: "lg" }), "w-full bg-green-600 text-white hover:bg-green-700 sm:w-auto")}
-            >
-              <Maximize2 className="h-4 w-4" />
-              เปิดอ่านแบบเต็มจอ
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setFullscreen(true)}
+                className={cn(buttonVariants({ size: "lg" }), "flex-1 bg-green-600 px-3 text-white hover:bg-green-700")}
+              >
+                <Maximize2 className="h-4 w-4" />
+                เปิดอ่านแบบเต็มจอ
+              </button>
+              <button
+                type="button"
+                onClick={handleDownload}
+                disabled={downloading}
+                className={cn(buttonVariants({ size: "lg", variant: "outline" }), "relative flex-1 overflow-hidden border-green-600 px-3 text-green-700 hover:bg-green-50 disabled:opacity-90")}
+              >
+                {downloading && progress > 0 && (
+                  <span
+                    className="absolute inset-y-0 left-0 bg-green-100 transition-[width] duration-150"
+                    style={{ width: `${progress}%` }}
+                    aria-hidden
+                  />
+                )}
+                <span className="relative flex items-center gap-2">
+                  {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {downloading
+                    ? progress > 0
+                      ? `กำลังดาวน์โหลด ${progress}%`
+                      : "กำลังเริ่มดาวน์โหลด..."
+                    : "ดาวน์โหลด PDF"}
+                </span>
+              </button>
+            </>
           )}
         </div>
       </div>
