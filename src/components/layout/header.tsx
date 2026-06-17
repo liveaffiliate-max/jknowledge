@@ -9,19 +9,18 @@ import { cn } from "@/lib/utils"
 import { Show } from "@clerk/nextjs"
 import { MobileMenu } from "./mobile-menu"
 import { ProfileAvatarLink } from "./profile-avatar-link"
+import { NavDropdown } from "./nav-dropdown"
 import { withRedirect } from "@/features/auth/lib/validation"
 
+// Flat links shown to the right of the วิเคราะห์ dropdown. The analyze family
+// is a separate item rendered as <NavDropdown>.
 const NAV_LINKS = [
-  { href: "/analyze",          label: "วิเคราะห์คะแนน", exact: true },
-  { href: "/analyze/compare",  label: "เปรียบเทียบ" },
-  { href: "/scores",           label: "คะแนนย้อนหลัง" },
-  { href: "/mbti",             label: "ทดสอบ MBTI" },
-  { href: "/tcas-folio",       label: "TCAS Folio", gated: true },
+  { href: "/scores",     label: "คะแนนย้อนหลัง" },
+  { href: "/mbti",       label: "ทดสอบ MBTI" },
+  { href: "/tcas-folio", label: "TCAS Folio", gated: true },
 ]
 
-/** Active when href matches exactly (exact=true) or pathname is nested under href. */
-function isLinkActive(pathname: string, href: string, exact?: boolean): boolean {
-  if (exact) return pathname === href
+function isLinkActive(pathname: string, href: string): boolean {
   return pathname.startsWith(href)
 }
 
@@ -47,13 +46,14 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden sm:flex items-center gap-6 text-sm font-medium text-gray-600">
-          {NAV_LINKS.map(({ href, label, gated, exact }) => (
+          <NavDropdown label="วิเคราะห์" />
+          {NAV_LINKS.map(({ href, label, gated }) => (
             <Link
               key={href}
               href={href}
               className={cn(
                 "flex items-center gap-1 transition-colors hover:text-green-600",
-                isLinkActive(pathname, href, exact) && "text-green-600 font-semibold"
+                isLinkActive(pathname, href) && "text-green-600 font-semibold"
               )}
             >
               {label}

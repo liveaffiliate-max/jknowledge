@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Header from "@/components/layout/header"
+import { AnalyzeSubNav } from "@/components/layout/analyze-sub-nav"
 import { AnalyzeForm } from "@/features/analyze/components/analyze-form"
 import { getUniversities, getLatestTcasYear } from "@/server/queries"
 import { BarChart2 } from "lucide-react"
@@ -20,6 +21,7 @@ export default async function AnalyzePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
+      <AnalyzeSubNav />
 
       <main className="flex-1 bg-gray-50">
         {/* Page header */}

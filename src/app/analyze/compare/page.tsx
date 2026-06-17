@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { Suspense } from "react"
 import Header from "@/components/layout/header"
+import { AnalyzeSubNav } from "@/components/layout/analyze-sub-nav"
 import { CompareClient } from "@/features/compare/components/compare-client"
 import { getUniversities, getLatestTcasYear } from "@/server/queries"
 import { GitCompareArrows, ArrowLeft } from "lucide-react"
@@ -22,6 +23,7 @@ export default async function ComparePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
+      <AnalyzeSubNav />
 
       <main className="flex-1 bg-gray-50">
         {/* Page header */}

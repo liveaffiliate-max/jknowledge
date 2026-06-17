@@ -3,32 +3,38 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Lock } from "lucide-react"
+import { Menu, X, Lock, ChevronDown } from "lucide-react"
 import { Show } from "@clerk/nextjs"
 import { ProfileAvatarLink } from "./profile-avatar-link"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { withRedirect } from "@/features/auth/lib/validation"
+import {
+  ANALYZE_NAV_ITEMS,
+  isAnalyzeItemActive,
+  isAnalyzeGroupActive,
+} from "./analyze-nav-items"
 
 interface NavLink {
   href:   string
   label:  string
   gated?: boolean
-  exact?: boolean
 }
 
 interface MobileMenuProps {
   links: NavLink[]
 }
 
-function isLinkActive(pathname: string, href: string, exact?: boolean): boolean {
-  if (exact) return pathname === href
+function isLinkActive(pathname: string, href: string): boolean {
   return pathname.startsWith(href)
 }
 
 export function MobileMenu({ links }: MobileMenuProps) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
+  // Expand the วิเคราะห์ accordion by default if user is already inside that family
+  const [analyzeOpen, setAnalyzeOpen] = useState(() => isAnalyzeGroupActive(pathname))
+  const analyzeActive = isAnalyzeGroupActive(pathname)
 
   return (
     <div className="sm:hidden">
@@ -50,14 +56,60 @@ export function MobileMenu({ links }: MobileMenuProps) {
       {/* Drawer — fixed below sticky header (h-16 = 64px) */}
       {open && (
         <div className="fixed inset-x-0 top-16 z-40 border-t border-border/50 bg-white px-4 pb-5 pt-3 space-y-1 shadow-sm">
-          {links.map(({ href, label, gated, exact }) => (
+          {/* วิเคราะห์ accordion — groups single-faculty analyze + compare features */}
+          <button
+            type="button"
+            onClick={() => setAnalyzeOpen((v) => !v)}
+            aria-expanded={analyzeOpen}
+            className={cn(
+              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              analyzeActive
+                ? "bg-green-50 text-green-700"
+                : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
+            )}
+          >
+            <span>วิเคราะห์</span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-gray-400 transition-transform",
+                analyzeOpen && "rotate-180"
+              )}
+            />
+          </button>
+          {analyzeOpen && (
+            <div className="ml-3 space-y-0.5 border-l-2 border-gray-100 pl-3">
+              {ANALYZE_NAV_ITEMS.map((item) => {
+                const active = isAnalyzeItemActive(pathname, item)
+                const Icon   = item.icon
+                return (
+                  <Link
+                    key={`${item.href}__${item.label}`}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                      active
+                        ? "bg-green-50 text-green-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-green-600"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Flat links */}
+          {links.map(({ href, label, gated }) => (
             <Link
               key={href}
               href={href}
               onClick={() => setOpen(false)}
               className={cn(
                 "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                isLinkActive(pathname, href, exact)
+                isLinkActive(pathname, href)
                   ? "bg-green-50 text-green-700"
                   : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
               )}
