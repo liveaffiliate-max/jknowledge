@@ -89,6 +89,7 @@ export interface FacultyWithScores extends Faculty {
 // ── Faculty Requirement (weights จาก mytcas) ──────────────────────────────────
 
 export interface RequirementData {
+  year:        number                   // ปี พ.ศ. ที่ weights อ้างอิง
   weights:     Record<string, unknown>  // { "tgat1": 30, "cal_type": "1", "cal_score_sum": 40, ... }
   estMinScore: number | null
 }

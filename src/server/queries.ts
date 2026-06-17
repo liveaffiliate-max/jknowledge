@@ -208,6 +208,7 @@ export const getFacultyRequirement = unstable_cache(
     })
     if (!row) return null
     return {
+      year:        row.year,
       weights:     row.weights as Record<string, number>,
       estMinScore: row.estMinScore ?? null,
     }

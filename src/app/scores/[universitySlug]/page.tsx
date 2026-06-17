@@ -8,8 +8,14 @@ import {
   getUniversityBySlug,
   getFacultiesByUniSlug,
   getLatestTcasYear,
+  getUniversitiesWithStats,
 } from "@/server/queries"
 import { MapPin } from "lucide-react"
+
+export async function generateStaticParams() {
+  const unis = await getUniversitiesWithStats()
+  return unis.map((u) => ({ universitySlug: u.slug }))
+}
 
 interface Props {
   params: Promise<{ universitySlug: string }>
@@ -38,8 +44,26 @@ export default async function UniversityScoresPage({ params }: Props) {
 
   if (!uni) notFound()
 
+  const jsonLd = {
+    "@context":  "https://schema.org",
+    "@type":     "CollegeOrUniversity",
+    name:        uni.name,
+    alternateName: uni.shortName,
+    address: {
+      "@type":          "PostalAddress",
+      addressLocality:  uni.location,
+      addressCountry:   "TH",
+    },
+    url: `https://jknowledge-th.com/scores/${uni.slug}`,
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Header />
 
       <main className="flex-1 bg-gray-50">

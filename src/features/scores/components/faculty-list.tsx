@@ -1,12 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { FIELD_COLORS, FIELD_LABELS } from "../lib/field-labels"
 import { trackFacultyClick } from "@/lib/analytics"
-import type { FacultyPreview } from "@/types/tcas"
-import { Search, ChevronRight } from "lucide-react"
+import type { FacultyPreview, FacultyField } from "@/types/tcas"
+import { Search, ChevronRight, ArrowUpDown } from "lucide-react"
+
+type SortKey = "min-asc" | "min-desc" | "seats-desc" | "name"
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "min-asc",    label: "คะแนนต่ำสุด: น้อย → มาก" },
+  { key: "min-desc",   label: "คะแนนต่ำสุด: มาก → น้อย" },
+  { key: "seats-desc", label: "ที่นั่งเยอะที่สุด" },
+  { key: "name",       label: "ชื่อ ก–ฮ" },
+]
 
 interface FacultyListProps {
   faculties: FacultyPreview[]
@@ -14,39 +23,114 @@ interface FacultyListProps {
 }
 
 export function FacultyList({ faculties, universitySlug }: FacultyListProps) {
-  const [query, setQuery] = useState("")
+  const [query, setQuery]   = useState("")
+  const [field, setField]   = useState<FacultyField | "all">("all")
+  const [sort, setSort]     = useState<SortKey>("min-asc")
 
-  const filtered = query.trim()
-    ? faculties.filter(
+  // Compute available fields once from the source list — chips only show what
+  // this university actually offers, sorted by count desc.
+  const availableFields = useMemo(() => {
+    const counts = new Map<FacultyField, number>()
+    for (const f of faculties) counts.set(f.field, (counts.get(f.field) ?? 0) + 1)
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [faculties])
+
+  const filtered = useMemo(() => {
+    const q = query.trim()
+    let list = faculties
+    if (field !== "all") list = list.filter((f) => f.field === field)
+    if (q) {
+      list = list.filter(
         (f) =>
-          f.name.includes(query) ||
-          f.program.includes(query) ||
-          (f.majorName ?? "").includes(query) ||
-          (f.detail ?? "").includes(query)
+          f.name.includes(q) ||
+          f.program.includes(q) ||
+          (f.majorName ?? "").includes(q) ||
+          (f.detail ?? "").includes(q),
       )
-    : faculties
+    }
+    const sorted = [...list]
+    switch (sort) {
+      case "min-asc":
+        sorted.sort((a, b) => (a.latestMinScore ?? Infinity) - (b.latestMinScore ?? Infinity))
+        break
+      case "min-desc":
+        sorted.sort((a, b) => (b.latestMinScore ?? -Infinity) - (a.latestMinScore ?? -Infinity))
+        break
+      case "seats-desc":
+        sorted.sort((a, b) => (b.latestSeats ?? -1) - (a.latestSeats ?? -1))
+        break
+      case "name":
+        sorted.sort((a, b) => a.name.localeCompare(b.name, "th"))
+        break
+    }
+    return sorted
+  }, [faculties, query, field, sort])
+
+  const resetAll = () => {
+    setQuery("")
+    setField("all")
+  }
 
   return (
     <div className="space-y-4">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="ค้นหาคณะ / สาขา / โครงการ..."
-          className={cn(
-            "w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4",
-            "text-sm text-gray-900 outline-none transition-all",
-            "focus:border-green-400 focus:ring-2 focus:ring-green-100"
-          )}
-        />
+      {/* Search + sort */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="ค้นหาคณะ / สาขา / โครงการ..."
+            className={cn(
+              "w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4",
+              "text-sm text-gray-900 outline-none transition-all",
+              "focus:border-green-400 focus:ring-2 focus:ring-green-100",
+            )}
+          />
+        </div>
+        <div className="relative">
+          <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            aria-label="เรียงลำดับ"
+            className={cn(
+              "appearance-none rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-8",
+              "text-sm text-gray-700 outline-none transition-all cursor-pointer",
+              "focus:border-green-400 focus:ring-2 focus:ring-green-100",
+            )}
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Field chips */}
+      {availableFields.length > 1 && (
+        <div className="flex flex-wrap gap-1.5">
+          <FieldChip
+            label={`ทั้งหมด · ${faculties.length}`}
+            active={field === "all"}
+            onClick={() => setField("all")}
+          />
+          {availableFields.map(([f, count]) => (
+            <FieldChip
+              key={f}
+              label={`${FIELD_LABELS[f] ?? "อื่นๆ"} · ${count}`}
+              active={field === f}
+              colorClass={field === f ? FIELD_COLORS[f] : undefined}
+              onClick={() => setField(f)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Count */}
       <p className="text-xs text-gray-400">
-        {query.trim()
+        {query.trim() || field !== "all"
           ? `พบ ${filtered.length} รายการ`
           : `ทั้งหมด ${faculties.length} คณะ/สาขา`}
       </p>
@@ -55,12 +139,14 @@ export function FacultyList({ faculties, universitySlug }: FacultyListProps) {
       {filtered.length === 0 ? (
         <div className="py-16 text-center text-gray-400 space-y-3">
           <Search className="mx-auto h-10 w-10 text-gray-200" />
-          <p className="text-sm font-medium text-gray-500">ไม่พบ &ldquo;{query}&rdquo;</p>
+          <p className="text-sm font-medium text-gray-500">
+            ไม่พบผลลัพธ์ที่ตรงกับเงื่อนไข
+          </p>
           <button
-            onClick={() => setQuery("")}
+            onClick={resetAll}
             className="text-xs text-green-600 hover:underline"
           >
-            ล้างการค้นหา
+            ล้างตัวกรองทั้งหมด
           </button>
         </div>
       ) : (
@@ -75,6 +161,32 @@ export function FacultyList({ faculties, universitySlug }: FacultyListProps) {
         </div>
       )}
     </div>
+  )
+}
+
+function FieldChip({
+  label,
+  active,
+  colorClass,
+  onClick,
+}: {
+  label: string
+  active: boolean
+  colorClass?: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+        active
+          ? colorClass ?? "bg-green-600 text-white border-green-600"
+          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50",
+      )}
+    >
+      {label}
+    </button>
   )
 }
 
@@ -107,7 +219,7 @@ function FacultyRow({
           <span
             className={cn(
               "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
-              fieldColor
+              fieldColor,
             )}
           >
             {fieldLabel}

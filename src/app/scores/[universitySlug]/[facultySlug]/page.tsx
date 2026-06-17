@@ -4,12 +4,15 @@ import Link from "next/link"
 import Header from "@/components/layout/header"
 import { ScoreTable } from "@/features/scores/components/score-table"
 import { ScoreHistoryChartLazy as ScoreHistoryChart } from "@/features/scores/components/score-history-chart-lazy"
+import { WeightBreakdown } from "@/features/scores/components/weight-breakdown"
+import { SimilarFaculties } from "@/features/scores/components/similar-faculties"
 import { FIELD_COLORS, FIELD_LABELS } from "@/features/scores/lib/field-labels"
-import { getFacultyWithScores } from "@/server/queries"
+import { getFacultyWithScores, getFacultyRequirement, getMajorComparison } from "@/server/queries"
+import { majorSlugFromFaculty } from "@/lib/major-canonical"
 import { cn } from "@/lib/utils"
 import { calculateTrend } from "@/utils/analyze"
 import { Breadcrumb } from "@/components/ui/breadcrumb"
-import { TrendingUp, TrendingDown, Minus, MapPin, ClipboardList, AlertTriangle, type LucideIcon } from "lucide-react"
+import { TrendingUp, TrendingDown, Minus, MapPin, ClipboardList, AlertTriangle, Scale, Users, type LucideIcon } from "lucide-react"
 
 // NOTE: [facultySlug] segment carries the faculty's cuid (ID), not the slug string.
 // University slug is now English (SEO-friendly) so no decodeURIComponent needed.
@@ -37,7 +40,10 @@ export default async function FacultyScorePage({ params }: Props) {
   const { universitySlug, facultySlug: facultyId } = await params
 
   // Query by faculty ID — reliable, avoids URL encoding issues with Thai slugs
-  const faculty = await getFacultyWithScores(facultyId)
+  const [faculty, requirement] = await Promise.all([
+    getFacultyWithScores(facultyId),
+    getFacultyRequirement(facultyId),
+  ])
   if (!faculty) notFound()
 
   // Extra safety: ensure the faculty belongs to the university in the URL
@@ -47,6 +53,13 @@ export default async function FacultyScorePage({ params }: Props) {
   const sorted = [...scores].sort((a, b) => b.year - a.year)
   const latest = sorted[0]
   const trend = calculateTrend(scores)
+
+  // Similar faculties (same canonical major at other universities)
+  const majorSlug   = majorSlugFromFaculty(faculty)
+  const comparison  = await getMajorComparison(majorSlug)
+  const similarRest = comparison
+    ? comparison.entries.filter((e) => e.facultyId !== faculty.id)
+    : []
 
   const displayName = [faculty.name, faculty.program, faculty.majorName, faculty.detail]
     .filter(Boolean)
@@ -62,8 +75,27 @@ export default async function FacultyScorePage({ params }: Props) {
   }
   const trendInfo = trendConfig[trend]
 
+  const jsonLd = {
+    "@context":   "https://schema.org",
+    "@type":      "Course",
+    name:         displayName,
+    description:  `คะแนนตัดสิทธิ์ TCAS ย้อนหลัง ${displayName} ${uni.name}`,
+    provider: {
+      "@type": "CollegeOrUniversity",
+      name:    uni.name,
+      sameAs:  `https://jknowledge-th.com/scores/${uni.slug}`,
+    },
+    educationalLevel: "Undergraduate",
+    inLanguage:       "th",
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Header />
 
       <main className="flex-1 bg-gray-50">
@@ -179,6 +211,17 @@ export default async function FacultyScorePage({ params }: Props) {
             </div>
           )}
 
+          {/* Weight breakdown */}
+          {requirement && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6">
+              <div className="flex items-center gap-1.5 mb-4 text-sm font-semibold text-gray-700">
+                <Scale className="h-4 w-4" />
+                น้ำหนักคะแนนที่ใช้คัดเลือก
+              </div>
+              <WeightBreakdown weights={requirement.weights} year={requirement.year} />
+            </div>
+          )}
+
           {/* Score table */}
           <div className="rounded-2xl border border-gray-200 bg-white p-6">
             <div className="flex items-center gap-1.5 mb-4 text-sm font-semibold text-gray-700">
@@ -187,6 +230,21 @@ export default async function FacultyScorePage({ params }: Props) {
             </div>
             <ScoreTable scores={scores} />
           </div>
+
+          {/* Similar faculties at other universities */}
+          {similarRest.length > 0 && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-6">
+              <div className="flex items-center gap-1.5 mb-4 text-sm font-semibold text-gray-700">
+                <Users className="h-4 w-4" />
+                คณะใกล้เคียงจากมหาวิทยาลัยอื่น
+              </div>
+              <SimilarFaculties
+                entries={similarRest}
+                currentMin={latest?.minScore ?? null}
+                majorSlug={majorSlug}
+              />
+            </div>
+          )}
 
           {/* CTA — analyze */}
           <div className="rounded-2xl border border-green-100 bg-green-50 p-5 flex items-center justify-between gap-4">
