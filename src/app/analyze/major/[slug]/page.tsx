@@ -2,12 +2,16 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import Header from "@/components/layout/header"
+import { AnalyzeSubNav } from "@/components/layout/analyze-sub-nav"
 import { MajorComparisonTable } from "@/features/compare/components/major-comparison-table"
 import { MajorComparisonChartLazy } from "@/features/compare/components/major-comparison-chart-lazy"
+import { MyScoreCard } from "@/features/compare/components/my-score-card"
+import { MajorInsights } from "@/features/compare/components/major-insights"
 import { getMajorComparison } from "@/server/queries"
 import { formatMajorLabel, parseMajorSlug } from "@/lib/major-canonical"
+import { weightsToSubjects } from "@/lib/subjects"
 import { SITE_URL } from "@/lib/site"
-import { ArrowLeft, GitCompareArrows, MapPin, Users, Building2 } from "lucide-react"
+import { ArrowLeft, Building2, MapPin, Users, GitCompareArrows } from "lucide-react"
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -34,15 +38,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const minStr  = easiest?.latestMinScore != null ? easiest.latestMinScore.toFixed(1) : "–"
 
   return {
-    title:       `เปรียบเทียบ ${label} ${count} มหาวิทยาลัย — Jknowledge`,
+    title:       `${label} ${count} มหาวิทยาลัย — Jknowledge`,
     description: `ดูคะแนนต่ำสุด เฉลี่ย จำนวนรับของ ${label} ทุกมหาวิทยาลัยที่เปิดสอน เรียงจากคะแนนต่ำสุด ${minStr} ของ ${easiest?.university.shortName ?? ""} ขึ้นไป — ข้อมูลย้อนหลัง 6 ปี อ้างอิงจาก mytcas`,
     alternates: {
-      canonical: `${SITE_URL}/analyze/compare/major/${slug}`,
+      canonical: `${SITE_URL}/analyze/major/${slug}`,
     },
     openGraph: {
       title:       `${label} — เทียบ ${count} มหาวิทยาลัย`,
       description: `คะแนนเข้าทุกมหาลัยที่เปิด ${label} เรียงจากเข้าง่ายสุด`,
-      url:         `${SITE_URL}/analyze/compare/major/${slug}`,
+      url:         `${SITE_URL}/analyze/major/${slug}`,
       siteName:    "Jknowledge",
       type:        "website",
     },
@@ -51,7 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function MajorComparisonPage({ params }: PageProps) {
+export default async function MajorPage({ params }: PageProps) {
   const { slug } = await params
   const data     = await getMajorComparison(slug)
   if (!data || data.entries.length === 0) notFound()
@@ -61,11 +65,29 @@ export default async function MajorComparisonPage({ params }: PageProps) {
   const easiest  = entries[0]
   const hardest  = entries[entries.length - 1]
 
+  // Compute the union of subject codes required across every uni offering this
+  // major. MyScoreCard renders an input for each — when the user fills them in,
+  // each row's chance updates in place (per-faculty weighting).
+  const relevantSubjects = (() => {
+    const codes = new Set<string>()
+    for (const e of entries) {
+      if (!e.requirementWeights) continue
+      for (const s of weightsToSubjects(e.requirementWeights)) {
+        if (s.bestOf) {
+          for (const c of s.bestOf.codes) codes.add(c)
+        } else {
+          codes.add(s.code)
+        }
+      }
+    }
+    return Array.from(codes)
+  })()
+
   // JSON-LD ItemList — surfaces the ranking to Google's rich-result eligibility
   const jsonLd = {
     "@context":        "https://schema.org",
     "@type":           "ItemList",
-    name:              `เปรียบเทียบ ${label} ${uniCount} มหาวิทยาลัย`,
+    name:              `${label} — ${uniCount} มหาวิทยาลัย`,
     numberOfItems:     uniCount,
     itemListOrder:     "https://schema.org/ItemListOrderAscending",
     itemListElement:   entries.map((e, i) => ({
@@ -79,27 +101,28 @@ export default async function MajorComparisonPage({ params }: PageProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
+      <AnalyzeSubNav />
 
       <main className="flex-1 bg-gray-50">
         {/* Hero */}
         <div className="bg-white border-b border-gray-100">
           <div className="mx-auto max-w-5xl px-4 py-8">
             <Link
-              href="/analyze/compare"
+              href="/analyze/major"
               className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors mb-2"
             >
               <ArrowLeft className="h-3 w-3" />
-              กลับไปหน้าเปรียบเทียบ
+              กลับไปคณะอื่น
             </Link>
 
             <div className="flex items-start gap-3">
-              <GitCompareArrows className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+              <Building2 className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight break-words">
                   {label}
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                  เปรียบเทียบคะแนนต่ำสุด · เฉลี่ย · จำนวนรับของทุกมหาวิทยาลัยที่เปิดสอน
+                  เปรียบเทียบคะแนนต่ำสุด · เฉลี่ย · จำนวนรับของทุกมหาวิทยาลัยที่เปิดสอนคณะนี้
                 </p>
               </div>
             </div>
@@ -133,13 +156,26 @@ export default async function MajorComparisonPage({ params }: PageProps) {
 
         {/* Body */}
         <div className="mx-auto max-w-5xl space-y-5 px-4 py-8">
+          {/* Score-aware: user enters raw subject scores once, every row in the
+              table below computes its own weighted total using THAT faculty's
+              weights — apples-to-apples per uni. */}
+          {relevantSubjects.length > 0 && (
+            <MyScoreCard
+              relevantSubjects={relevantSubjects}
+              title={`คะแนนของคุณสำหรับ ${parts.specialty ?? parts.name}`}
+            />
+          )}
+
+          {/* Smart insights — re-runs when user scores change */}
+          <MajorInsights entries={entries} />
+
           <MajorComparisonChartLazy entries={entries} />
           <MajorComparisonTable entries={entries} />
 
-          {/* Subtle CTA back to multi-faculty compare */}
+          {/* Cross-CTA back to the multi-faculty comparison flow */}
           <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-5 py-4 text-center">
             <p className="text-sm text-gray-600">
-              อยากเทียบหลายคณะข้ามมหาลัยพร้อมกัน?
+              อยากเทียบคณะ ข้ามมหาลัย พร้อมกัน 2-4 อัน?
             </p>
             <Link
               href="/analyze/compare"

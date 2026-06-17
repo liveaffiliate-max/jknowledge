@@ -11,6 +11,7 @@ const STATIC_ROUTES: { path: string; priority: number; changeFrequency: Metadata
   { path: "/",                  priority: 1.0, changeFrequency: "weekly"  },
   { path: "/analyze",           priority: 0.9, changeFrequency: "weekly"  },
   { path: "/analyze/compare",   priority: 0.9, changeFrequency: "weekly"  },
+  { path: "/analyze/major",     priority: 0.9, changeFrequency: "weekly"  },
   { path: "/scores",            priority: 0.9, changeFrequency: "weekly"  },
   { path: "/mbti",              priority: 0.9, changeFrequency: "monthly" },
   { path: "/tcas/min-scores",   priority: 0.8, changeFrequency: "weekly"  },
@@ -75,10 +76,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority:        0.5,
   }))
 
-  // Same-major comparison pages (Phase 2). Priority scales with uni count
+  // Same-major comparison pages. Priority scales with uni count
   // so high-coverage majors (e.g. แพทย์, วิศวะ) outrank niche ones.
   const majorCompareUrls: MetadataRoute.Sitemap = popularMajors.map((m) => ({
-    url:             `${SITE_URL}/analyze/compare/major/${m.slug}`,
+    url:             `${SITE_URL}/analyze/major/${m.slug}`,
     lastModified:    now,
     changeFrequency: "monthly" as const,
     priority:        Math.min(0.8, 0.5 + m.uniCount * 0.02),

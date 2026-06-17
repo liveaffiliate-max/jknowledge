@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
-export default function MajorComparisonLoading() {
+export default function MajorLoading() {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="h-16 border-b border-border/50 bg-white/90" />

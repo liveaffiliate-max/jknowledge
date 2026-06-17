@@ -6,7 +6,7 @@ import { ScoreTrendChartLazy as ScoreTrendChart } from "./score-trend-chart-lazy
 import { ScorePositionBar } from "./score-position-bar"
 import { ShareResultButton } from "./share-result-button"
 import { MBTIMatchBadge } from "./mbti-match-badge"
-import { getCanonicalMajorKey, majorSlugFromKey } from "@/lib/major-canonical"
+import { majorSlugFromFaculty } from "@/lib/major-canonical"
 import type { AdmissionResult } from "@/types/tcas"
 import {
   TrendingUp,
@@ -137,10 +137,11 @@ export function ResultCard({ result, onReset }: ResultCardProps) {
 
         {/* ── See this faculty at other universities ── */}
         <Link
-          href={`/analyze/compare/major/${majorSlugFromKey(getCanonicalMajorKey({
+          href={`/analyze/major/${majorSlugFromFaculty({
             name:      faculty.name,
+            program:   faculty.program,
             majorName: faculty.majorName,
-          }))}`}
+          })}`}
           className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-green-300 hover:bg-green-50 hover:text-green-700"
         >
           <Building2 className="h-4 w-4" />
