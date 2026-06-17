@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache"
 import { prisma } from "@/lib/prisma"
-import { normalizeDetail, normalizeMajor, normalizeProgram } from "@/lib/normalize-faculty"
+import { looseFacultyKey, normalizeDetail, normalizeMajor, normalizeProgram } from "@/lib/normalize-faculty"
 import {
   getCanonicalMajorKey,
   majorSlugFromKey,
@@ -30,22 +30,22 @@ export const getLatestTcasYear = unstable_cache(
 
 // ── Faculty helpers (internal) ────────────────────────────────────────────────
 
-/** Deduplicate faculty rows by normalized display key, keeping the one with most scores */
+/**
+ * Deduplicate faculty rows by a loose semantic key (handles "หลักสูตร" prefix,
+ * embedded uni name, degree-type parens, default "ภาคปกติ" / "ภาษาไทย"). Keeps
+ * the row with the most scores so the surviving row carries the richest
+ * history. `uniName` is required for the embedded-uni-suffix strip.
+ */
 function deduplicateFacultyRows<T extends {
   name: string
   program: string
   majorName: string | null
   detail: string | null
   _count: { scores: number }
-}>(rows: T[]): T[] {
+}>(rows: T[], uniName: string): T[] {
   const seen = new Map<string, T>()
   for (const f of rows) {
-    const key = [
-      f.name,
-      normalizeProgram(f.program),
-      normalizeMajor(f.majorName),
-      normalizeDetail(f.detail, f.name),
-    ].join("|")
+    const key = looseFacultyKey(f, uniName)
     const existing = seen.get(key)
     if (!existing || f._count.scores > existing._count.scores) {
       seen.set(key, f)
@@ -139,12 +139,14 @@ export const getFacultiesByUniSlug = unstable_cache(
       where:   { university: { slug: uniSlug } },
       orderBy: { name: "asc" },
       include: {
-        scores: { orderBy: { year: "desc" }, take: 1 },
-        _count: { select: { scores: true } },
+        scores:     { orderBy: { year: "desc" }, take: 1 },
+        _count:     { select: { scores: true } },
+        university: { select: { name: true } },
       },
     })
+    const uniName = rows[0]?.university.name ?? ""
 
-    return sortFacultyRows(deduplicateFacultyRows(rows)).map((f) => {
+    return sortFacultyRows(deduplicateFacultyRows(rows, uniName)).map((f) => {
         const latest = f.scores[0] ?? null
         return {
           id: f.id,
@@ -176,10 +178,14 @@ export const getFacultiesByUniversityId = unstable_cache(
         ...(filterYear ? { scores: { some: { year: filterYear } } } : {}),
       },
       orderBy: { name: "asc" },
-      include: { _count: { select: { scores: true } } },
+      include: {
+        _count:     { select: { scores: true } },
+        university: { select: { name: true } },
+      },
     })
+    const uniName = rows[0]?.university.name ?? ""
 
-    return sortFacultyRows(deduplicateFacultyRows(rows)).map((f) => ({
+    return sortFacultyRows(deduplicateFacultyRows(rows, uniName)).map((f) => ({
         id: f.id,
         universityId: f.universityId,
         name: f.name,
@@ -269,19 +275,23 @@ export async function getFacultyWithScores(
 // and full year history (for ranking + sparklines on the comparison page).
 
 export interface MajorComparisonEntry {
-  facultyId:       string
-  facultyName:     string
-  program:         string
-  majorName?:      string
-  detail?:         string
-  university:      University
-  latestYear:      number | null
-  latestMinScore:  number | null
-  latestAvgScore:  number | null
-  latestMaxScore:  number | null
-  latestSeats:     number | null
-  scoreCount:      number
-  scores:          YearlyScore[]
+  facultyId:        string
+  facultyName:      string
+  program:          string
+  majorName?:       string
+  detail?:          string
+  university:       University
+  latestYear:       number | null
+  latestMinScore:   number | null
+  latestAvgScore:   number | null
+  latestMaxScore:   number | null
+  latestSeats:      number | null
+  scoreCount:       number
+  scores:           YearlyScore[]
+  /** mytcas weights JSON — used client-side to compute the user's expected
+   *  score for THIS faculty's grading scheme. Null when the faculty has no
+   *  imported requirement record yet (older years / niche programs). */
+  requirementWeights: Record<string, unknown> | null
 }
 
 export interface MajorComparisonResult {
@@ -295,26 +305,32 @@ async function _getMajorComparison(slug: string): Promise<MajorComparisonResult 
   const parts = parseMajorSlug(slug)
   if (!parts) return null
 
-  // Exact match — light whitespace cleanup is applied in getCanonicalMajorKey
-  // so the slug already reflects normalized form. If we move to fuzzier
-  // matching later (synonym tables), this is the single point to edit.
+  // Filter by name in SQL (cheap), then match the canonical key in JS to enforce
+  // the same specialty resolution as getPopularMajorSlugs (majorName falls back
+  // to normalized program). Doing this in SQL would require a CASE expression
+  // per row — Prisma can't express that cleanly, and the working set per name
+  // is small (typically < 200 rows).
   const rows = await prisma.faculty.findMany({
-    where: {
-      name:      parts.name,
-      majorName: parts.majorName,
-    },
+    where: { name: parts.name },
     include: {
-      university: true,
-      scores:     { orderBy: { year: "asc" } },
+      university:  true,
+      scores:      { orderBy: { year: "asc" } },
+      requirement: true,
     },
   })
-  if (rows.length === 0) return null
+  const expectedKey = getCanonicalMajorKey({
+    name:      parts.name,
+    majorName: parts.specialty,
+  })
+  const filtered = rows.filter((f) => getCanonicalMajorKey(f) === expectedKey)
+  if (filtered.length === 0) return null
 
-  // Dedupe by university: same uni can hold multiple Faculty rows for the same
-  // program (different programCode across years). Keep the row with the most
-  // scores — usually the most-complete history.
-  const byUni = new Map<string, typeof rows[number]>()
-  for (const f of rows) {
+  // Dedupe by university: a uni can have multiple Faculty rows for the same
+  // major (different programCode across years, or international vs regular
+  // variants). Keep the row with the most scores — usually the most-complete
+  // history.
+  const byUni = new Map<string, typeof filtered[number]>()
+  for (const f of filtered) {
     const existing = byUni.get(f.universityId)
     if (!existing || f.scores.length > existing.scores.length) {
       byUni.set(f.universityId, f)
@@ -352,6 +368,9 @@ async function _getMajorComparison(slug: string): Promise<MajorComparisonResult 
         maxScore: s.maxScore ?? undefined,
         seats:    s.seats    ?? undefined,
       })),
+      requirementWeights: f.requirement?.weights
+        ? (f.requirement.weights as Record<string, unknown>)
+        : null,
     }
   })
 
@@ -377,9 +396,11 @@ async function _getMajorComparison(slug: string): Promise<MajorComparisonResult 
 }
 
 export async function getMajorComparison(slug: string): Promise<MajorComparisonResult | null> {
+  // Cache key suffix bumped when canonical key derivation changes — old "null"
+  // cache entries from a previous key shape must not leak into new requests.
   return unstable_cache(
     () => _getMajorComparison(slug),
-    ["major-comparison", slug],
+    ["major-comparison", "v2", slug],
     { revalidate: 3600, tags: ["faculties", "tcas-scores"] }
   )()
 }
@@ -391,9 +412,12 @@ export async function getMajorComparison(slug: string): Promise<MajorComparisonR
 
 export const getPopularMajorSlugs = unstable_cache(
   async (minUniCount = 3, limit = 60): Promise<Array<{ slug: string; uniCount: number }>> => {
+    // Need program too — canonical key now derives specialty from majorName OR
+    // the normalized program (see lib/major-canonical.ts).
     const rows = await prisma.faculty.findMany({
       select: {
         name:         true,
+        program:      true,
         majorName:    true,
         universityId: true,
       },
@@ -412,7 +436,7 @@ export const getPopularMajorSlugs = unstable_cache(
       .sort((a, b) => b.uniCount - a.uniCount)
       .slice(0, limit)
   },
-  ["popular-major-slugs"],
+  ["popular-major-slugs", "v2"],  // bumped cache key — old shape (no program) is stale
   { revalidate: 86400, tags: ["faculties"] }
 )
 

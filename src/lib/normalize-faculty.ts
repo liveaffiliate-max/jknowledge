@@ -104,3 +104,62 @@ export function normalizeDetail(
 
   return d
 }
+
+// ── Loose dedup key ──────────────────────────────────────────────────────────
+// Tighter merge rules used by `deduplicateFacultyRows`. Detection script
+// (scripts/find-duplicate-faculties.ts) found 42 duplicate groups under these
+// rules — 26 of them are COTMES TCAS64-vs-TCAS69 wording drift
+// ("แพทยศาสตรบัณฑิต" vs "หลักสูตรแพทยศาสตรบัณฑิต มหาวิทยาลัยX").
+
+const THAI_DEFAULT_DETAILS = new Set(["ภาษาไทย", "ปกติ", "ภาคปกติ"])
+const THAI_DEFAULT_MAJORS  = new Set(["ภาษาไทย"])
+
+function stripEmbeddedUniSuffix(s: string, uniName: string): string {
+  let out = s.trim()
+  if (uniName && out.endsWith(uniName)) {
+    out = out.slice(0, -uniName.length).trim()
+  }
+  out = out
+    .replace(/\s*(จุฬาลงกรณ์มหาวิทยาลัย|มหาวิทยาลัย[^\s]+|สถาบัน[^\s]+|วิทยาลัย[^\s]+)$/u, "")
+    .trim()
+  return out
+}
+
+/**
+ * Looser than normalizeProgram: strips "หลักสูตร" prefix, "(ศศ.บ.)" degree-type
+ * parens, trailing "ภาคปกติ" (default baseline), and embedded university name.
+ * Keeps ภาคพิเศษ / นานาชาติ because those denote distinct programs.
+ */
+export function looseProgram(program: string, uniName: string): string {
+  let s = program.trim()
+  s = s.replace(/\s*\([฀-๿.]+\.[฀-๿]\.\)\s*/gu, " ")
+  s = s.replace(/^(หลักสูตร|สาขาวิชา|สาขา|วิชา|วิชาเอก)\s*/u, "")
+  s = s.replace(/\s*(ภาคปกติ|หลักสูตรปกติ|โครงการปกติ)$/u, "")
+  s = stripEmbeddedUniSuffix(s, uniName)
+  s = s.replace(/\s+/g, " ").trim()
+  return s
+}
+
+export function looseDetail(detail: string | null | undefined, facultyName: string): string {
+  const norm = normalizeDetail(detail ?? "", facultyName)
+  if (!norm) return ""
+  return THAI_DEFAULT_DETAILS.has(norm.trim()) ? "" : norm
+}
+
+export function looseMajor(majorName: string | null | undefined): string {
+  const norm = normalizeMajor(majorName ?? "")
+  if (!norm) return ""
+  return THAI_DEFAULT_MAJORS.has(norm.trim()) ? "" : norm
+}
+
+export function looseFacultyKey(
+  f: { name: string; program: string; majorName: string | null; detail: string | null },
+  uniName: string,
+): string {
+  return [
+    f.name.trim(),
+    looseProgram(f.program, uniName),
+    looseMajor(f.majorName),
+    looseDetail(f.detail, f.name),
+  ].join("|")
+}

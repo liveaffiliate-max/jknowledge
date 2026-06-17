@@ -24,7 +24,7 @@ import { readFileSync } from "fs"
 import { join } from "path"
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
-import { normalizeDetail, normalizeMajor } from "../src/lib/normalize-faculty"
+import { looseFacultyKey, normalizeDetail, normalizeMajor } from "../src/lib/normalize-faculty"
 
 // ── Prisma setup ──────────────────────────────────────────────────────────────
 
@@ -322,6 +322,13 @@ async function upsertUniversity(name: string): Promise<string> {
 //   NOTE: Suffix matching was removed — COTMES reuses the same code suffix for
 //   all member universities (e.g. "120101A" = ทันตแพทย์), causing false merges.
 //
+// Path A.5 loose: `${universityId}:loose:${looseFacultyKey}` → facultyId
+//   Semantic-key fallback that absorbs wording drift between TCAS years
+//   ("แพทยศาสตรบัณฑิต" vs "หลักสูตรแพทยศาสตรบัณฑิต มหาวิทยาลัยX",
+//   majorName="" vs "ภาษาไทย"). Tried after Path A misses, before Path B
+//   creates a fresh row. Mirrors the display dedup in queries.ts so a new
+//   import can never re-introduce a duplicate the display layer would merge.
+//
 // Path B  slug:   `${universityId}:slug:${slug}` → facultyId
 const facCache = new Map<string, string>()
 
@@ -332,6 +339,7 @@ function isCOTMES(universityName: string): boolean {
 
 /** Populate facCache with all existing Faculty mappings. */
 async function preloadFacultyIndex(): Promise<void> {
+  // Pass 1 — programCode + facultyName keys (via TcasScore relation, only rows with code)
   const scores = await prisma.tcasScore.findMany({
     where: { programCode: { not: null } },
     select: {
@@ -359,6 +367,27 @@ async function preloadFacultyIndex(): Promise<void> {
     // Slug key for both
     facCache.set(`${uniId}:slug:${s.faculty.slug}`, fId)
   }
+
+  // Pass 2 — loose-key index for ALL faculties (covers rows that lost programCode
+  // or never had a TcasScore yet). Mirrors display dedup in queries.ts.
+  const faculties = await prisma.faculty.findMany({
+    select: {
+      id: true, universityId: true, name: true, program: true, majorName: true, detail: true,
+      university: { select: { name: true } },
+    },
+  })
+  for (const f of faculties) {
+    const lkey = looseFacultyKey(
+      { name: f.name, program: f.program, majorName: f.majorName, detail: f.detail },
+      f.university.name,
+    )
+    // First-write wins: if multiple existing rows share the same loose key (legacy
+    // dup), keep the first — Plan A display dedup chooses the one with most scores
+    // anyway, and a new import will only add to one of them going forward.
+    const k = `${f.universityId}:loose:${lkey}`
+    if (!facCache.has(k)) facCache.set(k, f.id)
+  }
+
   console.log(`📋 Pre-loaded ${facCache.size} Faculty cache entries\n`)
 }
 
@@ -437,6 +466,36 @@ async function upsertFaculty(row: NormalizedRow, universityId: string): Promise<
     }
   }
 
+  // ── Path A.5: loose-key fallback ─────────────────────────────────────────────
+  // Catches wording drift across TCAS years that Path A misses:
+  //   • "หลักสูตร" prefix gained/lost
+  //   • embedded university suffix added (TCAS69 COTMES pattern)
+  //   • majorName flipped between null and "ภาษาไทย"
+  //   • degree-type parens like "(ศศ.บ.)"
+  // Same key shape as queries.ts/deduplicateFacultyRows.
+  const looseKey = looseFacultyKey(
+    { name: row.facultyName, program: row.programName, majorName: row.majorName || null, detail: row.detail || null },
+    row.universityName,
+  )
+  const looseCacheKey = `${universityId}:loose:${looseKey}`
+  const looseHit      = facCache.get(looseCacheKey)
+  if (looseHit) {
+    // Update existing row with the latest canonical data + programCode so
+    // subsequent rows in the same run hit Path A first.
+    await prisma.faculty.update({
+      where: { id: looseHit },
+      data:  { ...canonicalData, programCode: row.programCode || null },
+    })
+    if (row.programCode) {
+      if (isCOTMES(row.universityName)) {
+        facCache.set(`${universityId}:fac:${row.facultyName}:${normMajor}`, looseHit)
+      } else {
+        facCache.set(`${universityId}:${row.programCode}:${normMajor}`, looseHit)
+      }
+    }
+    return looseHit
+  }
+
   // ── Path B: slug-based upsert (first insert) ─────────────────────────────────
   const slug      = makeFacultySlug(row.universityName, row.facultyName, row.programName, row.majorName, row.detail)
   const cacheKeyB = `${universityId}:slug:${slug}`
@@ -455,6 +514,7 @@ async function upsertFaculty(row: NormalizedRow, universityId: string): Promise<
 
   // Populate cache for this new Faculty
   facCache.set(cacheKeyB, faculty.id)
+  facCache.set(looseCacheKey, faculty.id)
   if (row.programCode) {
     if (isCOTMES(row.universityName)) {
       facCache.set(`${universityId}:fac:${row.facultyName}:${normMajor}`, faculty.id)
