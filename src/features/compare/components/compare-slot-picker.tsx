@@ -43,15 +43,17 @@ const universityDisplay = (u: University) => u.name
 const universitySearch  = (u: University) => expandThaiSynonyms(u.name)
 const universityRegion  = (u: University): ThaiRegion => getRegion(u.location)
 
-function facultySecondary(f: FacultyOption) {
-  return [f.program, f.majorName, f.detail]
+// Tertiary = program + detail joined; majorName is rendered on its own row
+// (see renderItem below) so the disambiguator never gets truncated.
+function facultyTertiary(f: FacultyOption) {
+  return [f.program, f.detail]
     .map((p) => p?.trim())
     .filter(Boolean)
     .join(" · ")
 }
 const facultyDisplay = (f: FacultyOption) => {
-  const sec = facultySecondary(f)
-  return sec ? `${f.name} · ${sec}` : f.name
+  const parts = [f.name, f.majorName?.trim(), facultyTertiary(f)].filter(Boolean)
+  return parts.join(" · ")
 }
 const facultySearch = (f: FacultyOption) => expandThaiSynonyms(facultyDisplay(f))
 
@@ -179,15 +181,20 @@ export function CompareSlotPicker({
         buildDisplayString={facultyDisplay}
         buildSearchString={facultySearch}
         renderItem={(f) => {
-          const sec = facultySecondary(f)
+          const tertiary = facultyTertiary(f)
           return (
             <>
               <div className="text-sm font-medium leading-tight text-gray-900 group-data-[highlighted]:text-green-800">
                 {f.name}
               </div>
-              {sec && (
-                <div className="mt-0.5 truncate text-xs leading-tight text-gray-500 group-data-[highlighted]:text-green-600">
-                  {sec}
+              {f.majorName && (
+                <div className="mt-0.5 text-xs font-medium leading-snug text-green-700 group-data-[highlighted]:text-green-800">
+                  {f.majorName}
+                </div>
+              )}
+              {tertiary && (
+                <div className="mt-0.5 truncate text-[11px] leading-tight text-gray-400 group-data-[highlighted]:text-green-600">
+                  {tertiary}
                 </div>
               )}
             </>

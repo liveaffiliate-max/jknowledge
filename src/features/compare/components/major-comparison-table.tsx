@@ -9,7 +9,11 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { paletteColor } from "@/lib/faculty-label"
+import { useUserScores } from "@/lib/user-scores"
+import { weightsToSubjects, calculateWeightedScore } from "@/lib/subjects"
+import { calculateAdmissionChance, CHANCE_CONFIG } from "@/utils/analyze"
 import type { MajorComparisonEntry } from "@/server/queries"
+import type { AdmissionChance } from "@/types/tcas"
 import {
   ArrowUpDown,
   ArrowDown,
@@ -20,6 +24,9 @@ import {
   MapPin,
   Users,
   ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  HelpCircle,
   type LucideIcon,
 } from "lucide-react"
 
@@ -28,6 +35,101 @@ type SortDir = "asc" | "desc"
 
 interface Props {
   entries: MajorComparisonEntry[]
+}
+
+// ── Per-row chance computation ───────────────────────────────────────────────
+
+type ChanceResult =
+  | { status: "no_user" }
+  | { status: "no_weights" }
+  | { status: "no_subjects_filled" }
+  | {
+      status:   "ok"
+      weighted: number
+      chance:   AdmissionChance
+      missing:  string[]   // partial — chance is shown but flagged uncertain
+    }
+
+function computeChance(
+  entry:        MajorComparisonEntry,
+  userSubjects: Record<string, string>,
+  hasAnyScore:  boolean
+): ChanceResult {
+  if (!hasAnyScore) return { status: "no_user" }
+  if (!entry.requirementWeights) return { status: "no_weights" }
+
+  const subjects = weightsToSubjects(entry.requirementWeights)
+  if (subjects.length === 0 || entry.latestMinScore == null) {
+    return { status: "no_weights" }
+  }
+
+  const missing: string[] = []
+  for (const s of subjects) {
+    if (s.bestOf) {
+      // BestOf needs AT LEAST one option filled — otherwise this subject group
+      // contributes 0 and we count the whole group as missing.
+      const anyFilled = s.bestOf.codes.some(
+        (c) => parseFloat(userSubjects[c] ?? "") > 0
+      )
+      if (!anyFilled) missing.push(s.bestOf.codes[0])
+    } else {
+      if (!(parseFloat(userSubjects[s.code] ?? "") > 0)) {
+        missing.push(s.code)
+      }
+    }
+  }
+
+  const weighted = calculateWeightedScore(subjects, userSubjects)
+  if (weighted <= 0) return { status: "no_subjects_filled" }
+
+  const chance = calculateAdmissionChance(
+    weighted,
+    entry.latestMinScore,
+    entry.latestAvgScore ?? entry.latestMinScore
+  )
+
+  return { status: "ok", weighted, chance, missing }
+}
+
+// ── Chance cell ──────────────────────────────────────────────────────────────
+
+const chanceIconMap: Record<AdmissionChance, LucideIcon> = {
+  high:        CheckCircle2,
+  competitive: AlertCircle,
+  low:         AlertCircle,
+}
+
+function ChanceCell({ result }: { result: ChanceResult }) {
+  if (result.status === "no_user" || result.status === "no_subjects_filled") {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-gray-300">
+        <HelpCircle className="h-3 w-3" />
+        กรอกคะแนน
+      </span>
+    )
+  }
+  if (result.status === "no_weights") {
+    return <span className="text-[11px] text-gray-300">—</span>
+  }
+  const cfg  = CHANCE_CONFIG[result.chance]
+  const Icon = chanceIconMap[result.chance]
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      <span className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold border",
+        cfg.bg, cfg.text, cfg.border
+      )}>
+        <Icon className="h-3 w-3 flex-shrink-0" />
+        {cfg.label}
+      </span>
+      <span className="text-[10px] text-gray-400 tabular-nums">
+        ~{result.weighted.toFixed(1)}
+        {result.missing.length > 0 && (
+          <span className="ml-1 text-amber-600">· ขาด {result.missing.length}</span>
+        )}
+      </span>
+    </div>
+  )
 }
 
 const trendConfig: Record<string, { icon: LucideIcon; color: string; label: string }> = {
@@ -86,6 +188,17 @@ function SortHeader({
 export function MajorComparisonTable({ entries }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("minScore")
   const [sortDir, setSortDir] = useState<SortDir>("asc")
+  const { state: userState, hasScores } = useUserScores()
+  const userSubjects = userState?.subjectScores ?? {}
+
+  // Pre-compute chance per entry — recomputed when user updates scores.
+  const chanceByFacultyId = useMemo(() => {
+    const map = new Map<string, ChanceResult>()
+    for (const e of entries) {
+      map.set(e.facultyId, computeChance(e, userSubjects, hasScores))
+    }
+    return map
+  }, [entries, userSubjects, hasScores])
 
   function handleSort(k: SortKey) {
     if (k === sortKey) {
@@ -129,10 +242,10 @@ export function MajorComparisonTable({ entries }: Props) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
       {/* Desktop header */}
-      <div className="hidden sm:grid grid-cols-[2rem_1fr_8rem_4.5rem_4.5rem_4.5rem_4rem] items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-4 py-2.5">
+      <div className="hidden sm:grid grid-cols-[2rem_1fr_6rem_4.5rem_4.5rem_4.5rem_4rem] items-center gap-3 border-b border-gray-100 bg-gray-50/60 px-4 py-2.5">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">#</span>
         <SortHeader label="มหาวิทยาลัย" k="shortName" current={sortKey} dir={sortDir} onClick={handleSort} />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">ตำแหน่ง</span>
+        <span className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">โอกาส</span>
         <SortHeader label="ต่ำสุด" k="minScore" current={sortKey} dir={sortDir} onClick={handleSort} align="right" />
         <span className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">เฉลี่ย</span>
         <span className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-400">สูงสุด</span>
@@ -163,7 +276,7 @@ export function MajorComparisonTable({ entries }: Props) {
                 className="group block hover:bg-green-50/40 transition-colors"
               >
                 {/* Desktop row */}
-                <div className="hidden sm:grid grid-cols-[2rem_1fr_8rem_4.5rem_4.5rem_4.5rem_4rem] items-center gap-3 px-4 py-3">
+                <div className="hidden sm:grid grid-cols-[2rem_1fr_6rem_4.5rem_4.5rem_4.5rem_4rem] items-center gap-3 px-4 py-3">
                   <span
                     className="inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold text-white tabular-nums"
                     style={{ background: accent }}
@@ -175,11 +288,14 @@ export function MajorComparisonTable({ entries }: Props) {
                       {e.university.shortName}
                       <ExternalLink className="ml-1 inline-block h-3 w-3 -translate-y-0.5 opacity-0 transition-opacity group-hover:opacity-50" />
                     </p>
-                    {e.detail && (
-                      <p className="text-[11px] text-gray-400 truncate">{e.detail}</p>
-                    )}
+                    <p className="text-[11px] text-gray-400 truncate">
+                      {e.university.location}
+                      {e.detail && <span> · {e.detail}</span>}
+                    </p>
                   </div>
-                  <span className="text-xs text-gray-500 truncate">{e.university.location}</span>
+                  <div className="flex justify-end">
+                    <ChanceCell result={chanceByFacultyId.get(e.facultyId)!} />
+                  </div>
                   <div className="relative text-right">
                     <span className="text-sm font-bold tabular-nums text-gray-900">
                       {min != null ? min.toFixed(1) : "–"}
@@ -241,11 +357,16 @@ export function MajorComparisonTable({ entries }: Props) {
                       </div>
                     )}
                   </div>
-                  <div className="flex-shrink-0 text-right">
-                    <p className="text-base font-bold tabular-nums text-gray-900">
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                    <p className="text-base font-bold tabular-nums text-gray-900 leading-none">
                       {min != null ? min.toFixed(1) : "–"}
                     </p>
-                    <p className="text-[10px] text-gray-400 leading-none mt-0.5">คะแนนต่ำสุด</p>
+                    <p className="text-[10px] text-gray-400 leading-none">คะแนนต่ำสุด</p>
+                    {hasScores && (
+                      <div className="mt-1">
+                        <ChanceCell result={chanceByFacultyId.get(e.facultyId)!} />
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>

@@ -5,13 +5,15 @@ import { cn } from "@/lib/utils"
 import {
   weightsToSubjects,
   calculateWeightedScore,
-  getSubjectShortCode,
   stripALevelPrefix,
 } from "@/lib/subjects"
 import type { SubjectGroup, SubjectWeight } from "@/lib/subjects"
 import { CheckCircle2, Target } from "lucide-react"
 
 // ── Config per group ──────────────────────────────────────────────────────────
+// Group identity used to be carried by a per-row 2-3 char badge (T1 / P3 / คณ1)
+// that duplicated info already in the label. The section header now owns the
+// group color, and individual rows are plain — full label reads in one pass.
 
 const GROUP_CONFIG: Record<
   SubjectGroup,
@@ -57,10 +59,7 @@ const SubjectRow = memo(function SubjectRow({
   const contribution = hasValue ? (numVal * subject.weight) / 100 : null
 
   return (
-    <div className="flex items-center gap-2 py-3 border-b border-gray-50 last:border-0">
-      <div className={cn("flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold leading-none", cfg.bg, cfg.text)}>
-        {getSubjectShortCode(subject.code)}
-      </div>
+    <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
       <div className="flex-1 min-w-0 overflow-hidden">
         <p className="text-sm font-medium text-gray-800 leading-tight max-sm:truncate">{subject.label}</p>
         <span className={cn("mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-xs font-semibold", cfg.bg, cfg.text)}>
@@ -113,10 +112,7 @@ function BestOfRow({
   return (
     <div className="py-3 border-b border-gray-50 last:border-0">
       {/* Group header */}
-      <div className="flex items-center gap-2 mb-2">
-        <div className={cn("flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold leading-none", cfg.bg, cfg.text)}>
-          CAL
-        </div>
+      <div className="flex items-center gap-3 mb-2">
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-800 leading-tight">{subject.label}</p>
           <div className="flex items-center gap-2 mt-0.5">
@@ -136,7 +132,7 @@ function BestOfRow({
       </div>
 
       {/* Choice inputs */}
-      <div className="ml-11 space-y-1.5">
+      <div className="space-y-1.5">
         {choices.codes.map((code, i) => {
           const val    = scores[code] ?? ""
           const numVal = parseFloat(val) || 0

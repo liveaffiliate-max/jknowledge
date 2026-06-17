@@ -8,14 +8,17 @@
 import { memo } from "react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
-import { getSubjectShortCode, getSubjectGroup, getSubjectLabel } from "@/lib/subjects"
+import { getSubjectGroup, getSubjectLabel } from "@/lib/subjects"
 import type { SubjectGroup } from "@/lib/subjects"
 import { AlertTriangle } from "lucide-react"
 
-const GROUP_CONFIG: Record<SubjectGroup, { bg: string; text: string }> = {
-  TGAT:      { bg: "bg-blue-50",   text: "text-blue-700" },
-  TPAT:      { bg: "bg-purple-50", text: "text-purple-700" },
-  "A-Level": { bg: "bg-amber-50",  text: "text-amber-700" },
+// 3px color stripe on the left identifies the group at a glance — the cryptic
+// 2-3 char badge ("T1", "ฟิส") was removed because the full label already
+// begins with "TGAT1 ...", "A-Level ฟิสิกส์", etc.
+const GROUP_STRIPE: Record<SubjectGroup, string> = {
+  TGAT:      "bg-blue-500",
+  TPAT:      "bg-purple-500",
+  "A-Level": "bg-amber-500",
 }
 
 interface CompareScoreInputProps {
@@ -39,19 +42,15 @@ const SubjectInputRow = memo(function SubjectInputRow({
   onChange: (code: string, value: string) => void
 }) {
   const group = getSubjectGroup(code)
-  const cfg   = GROUP_CONFIG[group]
+  const stripe = GROUP_STRIPE[group]
   const label = getSubjectLabel(code)
   const num   = parseFloat(value)
   const hasValue = value !== "" && !isNaN(num)
 
   return (
-    <div className="flex items-center gap-2 py-2.5 border-b border-gray-50 last:border-0">
-      <div className={cn(
-        "flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-[10px] font-bold leading-none",
-        cfg.bg, cfg.text
-      )}>
-        {getSubjectShortCode(code)}
-      </div>
+    <div className="relative flex items-center gap-3 overflow-hidden pl-3 pr-1 py-2.5 border-b border-gray-50 last:border-0">
+      {/* Group color stripe */}
+      <span aria-hidden className={cn("absolute left-0 top-2 bottom-2 w-[3px] rounded-r", stripe)} />
       <p className="flex-1 min-w-0 text-sm text-gray-700 truncate">{label}</p>
       <div className="flex items-center gap-1 flex-shrink-0">
         <input

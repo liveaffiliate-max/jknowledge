@@ -14,6 +14,7 @@ import {
   getFacultyRequirementAction,
 } from "@/server/actions"
 import { weightsToSubjects, calculateWeightedScore } from "@/lib/subjects"
+import { writeUserScores, readUserScores } from "@/lib/user-scores"
 import { cn } from "@/lib/utils"
 import {
   trackUniversitySelect,
@@ -207,11 +208,18 @@ function Spinner() {
 }
 
 // ── Helpers for search strings (module-level → stable refs for useMemo) ───────
+//
+// Dropdown row layout (per design analysis 2026-06-13):
+//   Line 1: faculty name (bold, never truncated — primary identifier)
+//   Line 2: majorName  (prominent, never truncated — THE disambiguator users click for)
+//   Line 3: program + detail joined (small, may truncate — supplementary context)
+//
+// Tertiary string is used both for in-row display and for the input-pill text
+// after selection.
 
-function buildFacultySecondary(f: FacultyOption): string {
+function buildFacultyTertiary(f: FacultyOption): string {
   return [
     programLabel(f.program),
-    f.majorName,
     projectLabel(f.detail, f.name),
   ].filter(Boolean).join(" · ")
 }
@@ -227,8 +235,9 @@ const universityRegion = (u: { location: string | null }): ThaiRegion =>
   getRegion(u.location)
 
 const facultyDisplayString = (f: FacultyOption) => {
-  const secondary = buildFacultySecondary(f)
-  return secondary ? `${f.name} · ${secondary}` : f.name
+  const tertiary = buildFacultyTertiary(f)
+  const parts = [f.name, f.majorName, tertiary].filter(Boolean)
+  return parts.join(" · ")
 }
 const facultySearchString = (f: FacultyOption) =>
   expandThaiSynonyms(facultyDisplayString(f))
@@ -313,6 +322,22 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
       subjectScores,
       fallbackScore,
     })
+    // Also mirror RAW scores into the shared user-scores store so other pages
+    // (/analyze/major, /analyze/compare) can compute their own weighted total
+    // per faculty. We merge with the existing record — never overwriting
+    // subjects the user entered on another page that aren't in scope here.
+    const existing = readUserScores()
+    const mergedSubjects = { ...(existing?.subjectScores ?? {}), ...subjectScores }
+    const shouldPersist =
+      Object.values(mergedSubjects).some((v) => parseFloat(v) > 0) ||
+      fallbackScore !== ""
+    if (shouldPersist) {
+      writeUserScores({
+        subjectScores: mergedSubjects,
+        fallbackScore: fallbackScore || existing?.fallbackScore || "",
+        updatedAt:     Date.now(),
+      })
+    }
   }, [hydrated, universityId, universityName, facultyId, subjectScores, fallbackScore])
 
   // ── Live weighted score ──────────────────────────────────────────
@@ -596,15 +621,20 @@ export function AnalyzeForm({ universities, filterYear }: AnalyzeFormProps) {
               buildDisplayString={facultyDisplayString}
               buildSearchString={facultySearchString}
               renderItem={(f) => {
-                const secondary = buildFacultySecondary(f)
+                const tertiary = buildFacultyTertiary(f)
                 return (
                   <>
                     <div className="text-sm font-medium leading-tight text-gray-900 group-data-[highlighted]:text-green-800">
                       {f.name}
                     </div>
-                    {secondary && (
-                      <div className="mt-0.5 truncate text-xs leading-tight text-gray-500 group-data-[highlighted]:text-green-600">
-                        {secondary}
+                    {f.majorName && (
+                      <div className="mt-0.5 text-xs font-medium leading-snug text-green-700 group-data-[highlighted]:text-green-800">
+                        {f.majorName}
+                      </div>
+                    )}
+                    {tertiary && (
+                      <div className="mt-0.5 truncate text-[11px] leading-tight text-gray-400 group-data-[highlighted]:text-green-600">
+                        {tertiary}
                       </div>
                     )}
                   </>

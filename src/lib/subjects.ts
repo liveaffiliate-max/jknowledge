@@ -41,6 +41,8 @@ export const SUBJECT_LABELS: Record<string, string> = {
   a_lv_87: "A-Level ภาษาจีน",
   a_lv_88: "A-Level ภาษาบาลี",
   a_lv_89: "A-Level ภาษาสเปน",
+  // Non-test weights that mytcas keeps in the weights JSON
+  gpax:    "GPAX เกรดเฉลี่ยสะสม",
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -153,9 +155,11 @@ export function calculateWeightedScore(
   }, 0)
 }
 
-/** short code สำหรับแสดงใน badge เช่น "T1", "TP3", "ไทย" */
+/** short code สำหรับแสดงใน badge เช่น "T1", "TP3", "ไทย"
+ *  Used only by compact summary chips now (rows show full labels). */
 export function getSubjectShortCode(code: string): string {
   if (code === "tgat") return "TG"
+  if (code === "gpax") return "GPAX"
   const tgat = code.match(/^tgat(\d)$/)
   if (tgat) return `T${tgat[1]}`
   const tpat = code.match(/^tpat(\d)$/)

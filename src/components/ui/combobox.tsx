@@ -161,7 +161,7 @@ export function Combobox<T extends ComboboxItem>({
       </div>
       <ComboboxPrimitive.Portal>
         <ComboboxPrimitive.Positioner sideOffset={4} className="z-50 w-(--anchor-width)">
-          <ComboboxPrimitive.Popup className="max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
+          <ComboboxPrimitive.Popup className="max-h-80 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg">
             <ComboboxPrimitive.List>
               {grouped
                 ? grouped.map(({ key, items: groupItems }) => (
