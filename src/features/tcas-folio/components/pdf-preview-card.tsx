@@ -1,30 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import dynamic from "next/dynamic"
 import Link from "next/link"
 import { Download, FileText, Loader2, Lock, Maximize2, X } from "lucide-react"
 import { useAuth } from "@clerk/nextjs"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { PdfImageGallery } from "@/features/tcas-folio/components/pdf-image-gallery"
+import manifest from "@/features/tcas-folio/data/pages-manifest.json"
 import type { TCAS_FOLIO_PDF } from "@/features/tcas-folio/data/content"
 
-const SIGN_IN_HREF = "/sign-in?redirect_url=/tcas-folio"
+const COVER_SRC = `${manifest.basePath}/1.webp`
+const COVER_ASPECT = manifest.width && manifest.height ? `${manifest.width} / ${manifest.height}` : "3 / 4"
 
-// pdfjs-dist relies on browser-only APIs (e.g. DOMMatrix) — must not run during SSR.
-// Only imported when user actually opens fullscreen, so locked / in-tab visitors
-// never pay the cost of fetching the 100MB+ PDF or the pdf.js worker bundle.
-const PdfCanvasPreview = dynamic(
-  () => import("@/features/tcas-folio/components/pdf-canvas-preview").then((m) => m.PdfCanvasPreview),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-64 items-center justify-center rounded-xl bg-gray-100 text-gray-400">
-        <Loader2 className="h-5 w-5 animate-spin" />
-      </div>
-    ),
-  }
-)
+const SIGN_IN_HREF = "/sign-in?redirect_url=/tcas-folio"
 
 export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
   const [fullscreen, setFullscreen] = useState(false)
@@ -161,7 +150,7 @@ export function PdfPreviewCard({ pdf }: { pdf: typeof TCAS_FOLIO_PDF }) {
             </button>
           </div>
           <div className="flex-1 overflow-auto px-4 pb-4">
-            <PdfCanvasPreview fileUrl={pdf.fileUrl} maxWidth={800} />
+            <PdfImageGallery maxWidth={800} />
           </div>
         </div>
       )}
@@ -179,18 +168,36 @@ function CoverCard({
   onOpen: () => void
 }) {
   const inner = (
-    <div className="flex aspect-[3/4] flex-col items-center justify-center gap-3 rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 p-6 text-center transition-colors group-hover:from-green-100 group-hover:to-emerald-200">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/90 shadow-sm">
-        {locked ? (
-          <Lock className="h-6 w-6 text-green-700" />
-        ) : (
-          <FileText className="h-6 w-6 text-green-700" />
+    <div
+      className="relative overflow-hidden rounded-xl bg-gray-100"
+      style={{ aspectRatio: COVER_ASPECT }}
+    >
+      <img
+        src={COVER_SRC}
+        alt={title}
+        loading="lazy"
+        decoding="async"
+        className={cn(
+          "absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105",
+          locked && "scale-105 blur-sm",
         )}
-      </div>
-      <p className="line-clamp-3 text-sm font-medium text-green-900/80">{title}</p>
-      <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-green-700">
-        {locked ? "เข้าสู่ระบบเพื่ออ่าน" : "แตะเพื่อเปิดอ่าน"}
-      </span>
+      />
+      {locked ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-green-900/30 backdrop-blur-[1px]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/95 shadow-sm">
+            <Lock className="h-6 w-6 text-green-700" />
+          </div>
+          <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-green-700 shadow-sm">
+            เข้าสู่ระบบเพื่ออ่าน
+          </span>
+        </div>
+      ) : (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/40 to-transparent p-3 pt-10">
+          <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-medium text-green-700 shadow-sm">
+            แตะเพื่อเปิดอ่าน
+          </span>
+        </div>
+      )}
     </div>
   )
 

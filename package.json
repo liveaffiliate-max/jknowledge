@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "render:tcas-folio": "tsx scripts/render-tcas-folio-pages.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -42,7 +43,9 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "pdf-to-img": "^6.2.0",
     "playwright": "^1.60.0",
+    "sharp": "^0.35.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",

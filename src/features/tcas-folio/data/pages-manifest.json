@@ -1,0 +1,27 @@
+{
+  "numPages": 22,
+  "width": 1191,
+  "height": 1684,
+  "basePath": "/tcas-folio/pages",
+  "pageLinks": {
+    "17": [
+      {
+        "url": "https://www.mytcas.com/doc/tcasfolio/",
+        "left": 0.25632034089000844,
+        "top": 0.9261662646807259,
+        "width": 0.4888491637279598,
+        "height": 0.03117825783804914
+      }
+    ],
+    "22": [
+      {
+        "url": "https://liveaffiliate-max.github.io/Jknow_Fortune/",
+        "left": 0.2754157867338371,
+        "top": 0.2378579563863158,
+        "width": 0.4548833904282116,
+        "height": 0.07629985351758609
+      }
+    ]
+  },
+  "generatedAt": "2026-06-18T09:53:13.904Z"
+}
