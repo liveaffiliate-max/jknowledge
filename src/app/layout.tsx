@@ -10,17 +10,16 @@ import { AnalyticsLoader } from "@/components/analytics-loader";
 import { CookieConsent } from "@/components/cookie-consent";
 import "./globals.css";
 
-// Only the 5 weights actually used in the UI — WOFF2 format (-71% vs TTF)
-// Dropped: Light (300), ExtraBold (800), and all italic variants (none used)
-const kanit = localFont({
-  variable: "--font-kanit",
+// LINE Seed Sans TH — ships Regular/Bold/ExtraBold/Black only.
+// UI weights 500/600 resolve to the closest available face via browser font matching.
+const lineSeed = localFont({
+  variable: "--font-line-seed",
   display: "swap",
   src: [
-    { path: "../../public/font/Kanit-Regular.woff2",  weight: "400", style: "normal" },
-    { path: "../../public/font/Kanit-Medium.woff2",   weight: "500", style: "normal" },
-    { path: "../../public/font/Kanit-SemiBold.woff2", weight: "600", style: "normal" },
-    { path: "../../public/font/Kanit-Bold.woff2",     weight: "700", style: "normal" },
-    { path: "../../public/font/Kanit-Black.woff2",    weight: "900", style: "normal" },
+    { path: "../../public/font/LINESeedSansTH-Regular.woff2",   weight: "400", style: "normal" },
+    { path: "../../public/font/LINESeedSansTH-Bold.woff2",      weight: "700", style: "normal" },
+    { path: "../../public/font/LINESeedSansTH-ExtraBold.woff2", weight: "800", style: "normal" },
+    { path: "../../public/font/LINESeedSansTH-Black.woff2",     weight: "900", style: "normal" },
   ],
 });
 
@@ -40,7 +39,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider appearance={{ theme: shadcn }}>
-      <html lang="th" className={`${kanit.variable} h-full antialiased`}>
+      <html lang="th" className={`${lineSeed.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col bg-background text-foreground pb-[56px] sm:pb-0">
           <Toaster>
             <PageTransition>

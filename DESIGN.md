@@ -13,30 +13,31 @@ colors:
   destructive: "oklch(0.577 0.245 27.325)"
 typography:
   display:
-    fontFamily: "Kanit, system-ui, sans-serif"
+    fontFamily: "LINE Seed Sans TH, system-ui, sans-serif"
     fontSize: "clamp(2rem, 5vw, 3.75rem)"
-    fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "-0.02em"
+    fontWeight: 800
+    lineHeight: 1.05
+    letterSpacing: "-0.035em"
   headline:
-    fontFamily: "Kanit, system-ui, sans-serif"
+    fontFamily: "LINE Seed Sans TH, system-ui, sans-serif"
     fontSize: "clamp(1.5rem, 3vw, 2rem)"
-    fontWeight: 700
-    lineHeight: 1.2
+    fontWeight: 800
+    lineHeight: 1.15
+    letterSpacing: "-0.025em"
   title:
-    fontFamily: "Kanit, system-ui, sans-serif"
+    fontFamily: "LINE Seed Sans TH, system-ui, sans-serif"
     fontSize: "1.125rem"
-    fontWeight: 600
+    fontWeight: 700
     lineHeight: 1.4
   body:
-    fontFamily: "Kanit, system-ui, sans-serif"
+    fontFamily: "LINE Seed Sans TH, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: "Kanit, system-ui, sans-serif"
+    fontFamily: "LINE Seed Sans TH, system-ui, sans-serif"
     fontSize: "0.75rem"
-    fontWeight: 500
+    fontWeight: 700
     lineHeight: 1.4
 rounded:
   sm: "6px"
