@@ -40,7 +40,7 @@ export function UniversityGrid({ universities }: UniversityGridProps) {
           placeholder="ค้นหา มหาวิทยาลัย เช่น จุฬา, มหิดล, เชียงใหม่..."
           className={cn(
             "w-full rounded-xl border border-gray-200 bg-white py-3 pl-9 pr-4",
-            "text-sm text-gray-900 outline-none",
+            "text-sm text-gray-900 placeholder:text-gray-500 outline-none",
             "transition-[border-color,box-shadow] duration-200 ease-out",
             "focus:border-green-400 focus:ring-2 focus:ring-green-100",
             "peer"
@@ -49,7 +49,7 @@ export function UniversityGrid({ universities }: UniversityGridProps) {
       </div>
 
       {/* Count */}
-      <p className="text-xs text-gray-400 tabular-nums">
+      <p className="text-xs font-medium text-gray-500 tabular-nums">
         {query.trim()
           ? `พบ ${filtered.length} มหาวิทยาลัย`
           : `ทั้งหมด ${universities.length} มหาวิทยาลัย`}
@@ -57,12 +57,12 @@ export function UniversityGrid({ universities }: UniversityGridProps) {
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center text-gray-400 space-y-3 motion-safe:animate-step-reveal">
+        <div className="py-16 text-center space-y-3 motion-safe:animate-step-reveal">
           <School className="mx-auto h-10 w-10 text-gray-200 motion-safe:animate-idle-breathe" />
-          <p className="text-sm font-medium text-gray-500">ไม่พบ &ldquo;{query}&rdquo;</p>
+          <p className="text-base font-bold text-gray-700">ไม่พบ &ldquo;{query}&rdquo;</p>
           <button
             onClick={() => setQuery("")}
-            className="text-xs text-green-600 hover:underline"
+            className="text-xs font-bold text-green-700 hover:underline underline-offset-2"
           >
             ล้างการค้นหา
           </button>
@@ -127,10 +127,13 @@ function UniversityCard({ university: u, index }: UniversityCardProps) {
             rounded="rounded-xl"
           />
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-gray-900 text-sm leading-snug group-hover:text-green-700 transition-colors duration-200 line-clamp-2">
+            <p
+              className="font-bold text-gray-900 text-[15px] leading-[1.3] tracking-tight group-hover:text-green-700 transition-colors duration-200 line-clamp-2"
+              style={{ letterSpacing: "-0.005em" } as React.CSSProperties}
+            >
               {u.name}
             </p>
-            <p className="text-xs text-gray-500 mt-0.5">{u.shortName}</p>
+            <p className="text-xs text-gray-500 mt-1">{u.shortName}</p>
           </div>
 
           {/* Hover-only "go" affordance — slides in from below the logo column. */}
@@ -152,11 +155,11 @@ function UniversityCard({ university: u, index }: UniversityCardProps) {
           </div>
           <div className="flex items-center gap-2">
             {u.latestYear && (
-              <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-semibold text-green-600">
+              <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-bold tabular-nums text-green-700">
                 TCAS{u.latestYear - 2500}
               </span>
             )}
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500 tabular-nums">
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600 tabular-nums">
               {u.facultyCount} สาขา
             </span>
           </div>

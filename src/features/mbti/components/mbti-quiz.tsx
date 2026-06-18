@@ -266,12 +266,12 @@ export function MBTIQuiz() {
 
           {/* Heading — show end state, not just the action */}
           <h2
-            className="mb-2 text-xl font-bold text-gray-900 sm:text-2xl"
-            style={{ textWrap: "balance" } as React.CSSProperties}
+            className="mb-3 text-2xl font-extrabold leading-[1.2] tracking-tight text-gray-900 sm:text-[1.75rem]"
+            style={{ textWrap: "balance", letterSpacing: "-0.025em" } as React.CSSProperties}
           >
             รู้บุคลิก แล้วรับคำแนะนำคณะ
           </h2>
-          <p className="mb-6 text-sm leading-relaxed text-gray-500">
+          <p className="mb-6 text-sm leading-relaxed text-gray-600">
             ระบบจะวิเคราะห์แนวคิดและวิธีมองโลกของคุณ แล้วแนะนำคณะที่เหมาะกับบุคลิกภาพนั้น
           </p>
 
@@ -295,8 +295,8 @@ export function MBTIQuiz() {
 
           {/* Scale explanation */}
           <div className="mb-7 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3.5">
-            <p className="mb-3 text-xs font-medium text-gray-500">วิธีตอบแต่ละข้อ</p>
-            <p className="mb-3 text-xs text-gray-500 leading-relaxed">
+            <p className="mb-2 text-[13px] font-bold text-gray-800">วิธีตอบแต่ละข้อ</p>
+            <p className="mb-3 text-xs leading-relaxed text-gray-600">
               แต่ละข้อมีประโยคหนึ่งประโยค เลือกระดับว่าตรงกับคุณแค่ไหน
             </p>
             {/* Mini scale preview — 5 dots with permanent labels */}
@@ -358,10 +358,10 @@ export function MBTIQuiz() {
       {/* ── Live personality preview (hero) ───────────────────────────────── */}
       <div className="mb-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-medium text-gray-500">กำลังวิเคราะห์บุคลิก…</span>
+          <span className="text-xs font-bold text-gray-600">กำลังวิเคราะห์บุคลิก…</span>
           {/* Hide % until first answer — "0%" at start looks like an error */}
           {answeredCount > 0 && (
-            <span className="text-xs font-semibold text-green-700">ความมั่นใจ {Math.round(overall * 100)}%</span>
+            <span className="text-xs font-bold tabular-nums text-green-700">ความมั่นใจ {Math.round(overall * 100)}%</span>
           )}
         </div>
 
@@ -414,8 +414,8 @@ export function MBTIQuiz() {
         <div className="mb-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <div>
-            <p className="text-xs font-semibold text-amber-800">เลือก &ldquo;กลาง ๆ&rdquo; บ่อยเกินไปนะ</p>
-            <p className="mt-0.5 text-xs text-amber-600">ลองเลือกข้างที่ตรงกับตัวคุณมากกว่า เพื่อผลที่แม่นยำขึ้น</p>
+            <p className="text-xs font-bold text-amber-800">เลือก &ldquo;กลาง ๆ&rdquo; บ่อยเกินไปนะ</p>
+            <p className="mt-0.5 text-xs text-amber-800/85">ลองเลือกข้างที่ตรงกับตัวคุณมากกว่า เพื่อผลที่แม่นยำขึ้น</p>
           </div>
         </div>
       )}
@@ -449,13 +449,16 @@ export function MBTIQuiz() {
         <div className="px-6 pt-4 pb-4">
           <div className="mb-2 flex items-center gap-1.5">
             <span className={cn("inline-block h-1.5 w-1.5 rounded-full", meta.barColor)} />
-            <span className="text-xs font-medium text-gray-400">
+            <span className="text-xs font-bold text-gray-600">
               ทำความเข้าใจ{meta.label}ของคุณ
             </span>
           </div>
           {/* Statement card — slightly larger to feel like the main focal point */}
-          <div className="mt-1 rounded-xl bg-gray-50 px-5 py-5">
-            <p className="text-center text-base font-semibold leading-relaxed text-gray-900 sm:text-lg">
+          <div className="mt-1 rounded-xl bg-gray-50 px-5 py-6 sm:py-7">
+            <p
+              className="text-center text-lg font-bold leading-[1.5] text-gray-900 sm:text-xl"
+              style={{ textWrap: "balance", letterSpacing: "-0.01em" } as React.CSSProperties}
+            >
               &ldquo;{currentQ.statement}&rdquo;
             </p>
           </div>

@@ -25,13 +25,16 @@ export default async function ScoresPage() {
           <div className="mx-auto max-w-5xl px-4 py-10">
             <div className="flex items-center gap-3 mb-2">
               <Landmark className="h-7 w-7 text-gray-600 flex-shrink-0" />
-              <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
+              <h1
+                className="text-2xl font-extrabold tracking-tight text-gray-900 sm:text-[2rem] sm:leading-[1.15]"
+                style={{ letterSpacing: "-0.025em" } as React.CSSProperties}
+              >
                 คะแนน TCAS ย้อนหลัง
               </h1>
             </div>
-            <p className="text-gray-500 text-sm ml-10">
+            <p className="ml-10 text-sm text-gray-600 sm:text-[15px]">
               ข้อมูลคะแนน TCAS64–69 จาก{" "}
-              <strong className="text-gray-700">{universities.length}</strong>{" "}
+              <strong className="font-bold text-gray-900 tabular-nums">{universities.length}</strong>{" "}
               มหาวิทยาลัย
             </p>
             <div className="mt-4 ml-12 flex flex-wrap gap-2">
@@ -39,7 +42,7 @@ export default async function ScoresPage() {
                 <span
                   key={y}
                   style={{ "--i": i } as React.CSSProperties}
-                  className="motion-safe:animate-chip-enter rounded-full bg-green-50 border border-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
+                  className="motion-safe:animate-chip-enter rounded-full border border-green-100 bg-green-50 px-2.5 py-0.5 text-xs font-bold tabular-nums text-green-700"
                 >
                   TCAS{y}
                 </span>
@@ -54,7 +57,7 @@ export default async function ScoresPage() {
         </div>
       </main>
 
-      <footer className="border-t border-gray-100 bg-white px-4 py-6 text-center text-sm text-gray-400">
+      <footer className="border-t border-gray-100 bg-white px-4 py-6 text-center text-sm text-gray-500">
         <p>© 2026 Jknowledge · ข้อมูลทั้งหมดเป็นอ้างอิงจากเว็บไซต์ mytcas · เป็นเพียงการประมาณการ ไม่ใช่ผลลัพธ์ที่รับประกันการสอบติด</p>
       </footer>
     </div>

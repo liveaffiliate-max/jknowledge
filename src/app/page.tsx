@@ -39,9 +39,10 @@ export default function HomePage() {
             สำหรับนักเรียน TCAS ทุกคน
           </span>
           <h1
-            className="mb-6 font-bold leading-tight tracking-tight text-gray-900"
+            className="mb-6 font-extrabold leading-[1.05] tracking-tight text-gray-900"
             style={{
               fontSize: "clamp(1.875rem, 6.5vw, 3.75rem)",
+              letterSpacing: "-0.035em",
               textWrap: "balance",
             } as React.CSSProperties}
           >
@@ -109,22 +110,23 @@ export default function HomePage() {
           <FadeIn>
             <div className="mb-10 flex items-center justify-center divide-x divide-gray-200">
               <div className="px-6 sm:px-10">
-                <p className="text-3xl font-bold text-gray-900 sm:text-4xl">
+                <p className="text-3xl font-extrabold tabular-nums tracking-tight text-gray-900 sm:text-4xl">
                   <CountUp to={50} suffix="+" />
                 </p>
-                <p className="mt-1 text-sm text-gray-500">มหาวิทยาลัย</p>
+                <p className="mt-2 text-[13px] text-gray-500">มหาวิทยาลัย</p>
               </div>
               <div className="px-6 sm:px-10">
-                <p className="text-3xl font-bold text-gray-900 sm:text-4xl">
+                <p className="text-3xl font-extrabold tabular-nums tracking-tight text-gray-900 sm:text-4xl">
                   <CountUp to={500} suffix="+" />
                 </p>
-                <p className="mt-1 text-sm text-gray-500">คณะ</p>
+                <p className="mt-2 text-[13px] text-gray-500">คณะ</p>
               </div>
               <div className="px-6 sm:px-10">
-                <p className="text-3xl font-bold text-gray-900 sm:text-4xl">
-                  <CountUp to={6} /><span className="text-green-600 text-2xl sm:text-3xl"> ปี</span>
+                <p className="text-3xl font-extrabold tabular-nums tracking-tight text-gray-900 sm:text-4xl">
+                  <CountUp to={6} />
+                  <span className="ml-1 text-2xl font-bold text-green-600 sm:text-3xl">ปี</span>
                 </p>
-                <p className="mt-1 text-sm text-gray-500">ข้อมูลย้อนหลัง</p>
+                <p className="mt-2 text-[13px] text-gray-500">ข้อมูลย้อนหลัง</p>
               </div>
             </div>
           </FadeIn>
@@ -164,8 +166,8 @@ export default function HomePage() {
         <div className="mx-auto max-w-2xl">
           <FadeIn>
             <h2
-              className="mb-10 text-2xl font-bold text-gray-900 sm:text-3xl"
-              style={{ textWrap: "balance" } as React.CSSProperties}
+              className="mb-10 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-[2rem] sm:leading-[1.15]"
+              style={{ textWrap: "balance", letterSpacing: "-0.025em" } as React.CSSProperties}
             >
               จากไม่แน่ใจ ถึงพร้อมสมัคร TCAS
             </h2>
@@ -200,7 +202,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">สำรวจแนวโน้มคะแนนย้อนหลัง</p>
-                  <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-green-800">
+                  <p className="mt-1 text-sm text-gray-600 transition-colors group-hover:text-green-800">
                     ดูว่าคณะที่สนใจตัดคะแนนเพิ่มหรือลดในช่วง 6 ปีที่ผ่านมา เพื่อประเมินปีนี้
                   </p>
                 </div>
@@ -218,7 +220,7 @@ export default function HomePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">ค้นหาตัวเองว่าคุณเหมาะกับคณะอะไร</p>
-                  <p className="mt-1 text-sm text-gray-500 transition-colors group-hover:text-green-800">
+                  <p className="mt-1 text-sm text-gray-600 transition-colors group-hover:text-green-800">
                     ยังไม่แน่ใจว่าจะเรียนอะไร ลองดูว่าคนที่มีบุคลิกแบบเดียวกับคุณมักเลือกเรียนอะไร
                   </p>
                 </div>
@@ -322,8 +324,8 @@ function TcasFolioFeature() {
                 </span>
 
                 <h2
-                  className="text-xl font-bold leading-tight text-gray-900 sm:text-2xl"
-                  style={{ textWrap: "balance" } as React.CSSProperties}
+                  className="text-xl font-extrabold leading-tight tracking-tight text-gray-900 sm:text-2xl"
+                  style={{ textWrap: "balance", letterSpacing: "-0.025em" } as React.CSSProperties}
                 >
                   คู่มือทำพอร์ตโฟลิโอ TCAS
                 </h2>
