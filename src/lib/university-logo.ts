@@ -1,18 +1,11 @@
 /**
  * University logo URL helper
- * Logos stored in Supabase Storage → public bucket "University logo"
- * Filename = {universitySlug}.png  (matches the English SEO slugs)
+ * Logos are pre-optimized 96x96 WebP files in public/logos/, generated from
+ * Supabase Storage by scripts/download-logos.ts. Serving them as static
+ * assets (with `unoptimized` on <Image>) avoids Vercel's Image Optimization
+ * quota, since the original Supabase PNGs were optimized on every request.
  */
 
-const BUCKET_URL =
-  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/University%20logo`
-
-/** Known filename overrides (storage uses different casing than slug) */
-const FILENAME_OVERRIDES: Record<string, string> = {
-  kmitl: "KMITL",
-}
-
 export function getUniversityLogoUrl(slug: string): string {
-  const filename = FILENAME_OVERRIDES[slug] ?? slug
-  return `${BUCKET_URL}/${filename}.png`
+  return `/logos/${slug}.webp`
 }

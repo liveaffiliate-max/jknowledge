@@ -16,7 +16,7 @@ interface UniversityLogoProps {
 }
 
 /**
- * Displays a university logo from Supabase Storage.
+ * Displays a pre-optimized university logo from public/logos/.
  * Falls back to a colored letter-avatar if the image fails to load.
  */
 export function UniversityLogo({
@@ -55,7 +55,7 @@ export function UniversityLogo({
         src={getUniversityLogoUrl(slug)}
         alt={`${shortName} logo`}
         fill
-        sizes="48px"
+        unoptimized
         className="object-contain p-1"
         onError={() => setError(true)}
       />
