@@ -62,10 +62,10 @@ export function MobileMenu({ links }: MobileMenuProps) {
             onClick={() => setAnalyzeOpen((v) => !v)}
             aria-expanded={analyzeOpen}
             className={cn(
-              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+              "flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-tight transition-colors",
               analyzeActive
                 ? "bg-green-50 text-green-700"
-                : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
+                : "text-gray-800 hover:bg-gray-50 hover:text-green-600"
             )}
           >
             <span>วิเคราะห์</span>
@@ -77,7 +77,7 @@ export function MobileMenu({ links }: MobileMenuProps) {
             />
           </button>
           {analyzeOpen && (
-            <div className="ml-3 space-y-0.5 border-l-2 border-gray-100 pl-3">
+            <div className="mt-0.5 ml-4 space-y-0.5">
               {ANALYZE_NAV_ITEMS.map((item) => {
                 const active = isAnalyzeItemActive(pathname, item)
                 const Icon   = item.icon
@@ -87,9 +87,9 @@ export function MobileMenu({ links }: MobileMenuProps) {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                       active
-                        ? "bg-green-50 text-green-700 font-medium"
+                        ? "bg-green-50 text-green-700 font-semibold"
                         : "text-gray-600 hover:bg-gray-50 hover:text-green-600"
                     )}
                   >
@@ -108,10 +108,10 @@ export function MobileMenu({ links }: MobileMenuProps) {
               href={href}
               onClick={() => setOpen(false)}
               className={cn(
-                "flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center justify-between rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-tight transition-colors",
                 isLinkActive(pathname, href)
                   ? "bg-green-50 text-green-700"
-                  : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
+                  : "text-gray-800 hover:bg-gray-50 hover:text-green-600"
               )}
             >
               <span>{label}</span>
@@ -130,13 +130,13 @@ export function MobileMenu({ links }: MobileMenuProps) {
                 href="/dashboard"
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center rounded-xl px-3 py-2.5 text-[15px] font-semibold tracking-tight transition-colors",
                   pathname.startsWith("/dashboard")
                     ? "bg-green-50 text-green-700"
-                    : "text-gray-700 hover:bg-gray-50 hover:text-green-600"
+                    : "text-gray-800 hover:bg-gray-50 hover:text-green-600"
                 )}
               >
-                Dashboard
+                บันทึกของฉัน
               </Link>
             </Show>
             <Show when="signed-out">

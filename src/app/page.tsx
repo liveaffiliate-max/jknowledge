@@ -39,9 +39,10 @@ export default function HomePage() {
             สำหรับนักเรียน TCAS ทุกคน
           </span>
           <h1
-            className="mb-6 font-extrabold leading-[1.05] tracking-tight text-gray-900"
+            className="mb-6 font-extrabold text-gray-900"
             style={{
-              fontSize: "clamp(1.875rem, 6.5vw, 3.75rem)",
+              fontSize: "clamp(2rem, 6.5vw, 3.75rem)",
+              lineHeight: 1.05,
               letterSpacing: "-0.035em",
               textWrap: "balance",
             } as React.CSSProperties}
@@ -49,7 +50,10 @@ export default function HomePage() {
             รู้โอกาสก่อนสมัคร
             <span className="block text-green-700">ด้วยคะแนนย้อนหลัง 6 ปี</span>
           </h1>
-          <p className="mb-8 text-lg leading-relaxed text-gray-600 sm:text-xl" style={{ textWrap: "balance" } as React.CSSProperties}>
+          <p
+            className="mb-8 text-[17px] leading-[1.55] text-gray-600 sm:text-xl"
+            style={{ textWrap: "balance", letterSpacing: "-0.005em" } as React.CSSProperties}
+          >
             กรอกคะแนน เห็นทันทีว่าติดที่ไหนได้บ้าง · ฟรี ไม่ต้อง login
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -73,7 +77,7 @@ export default function HomePage() {
               ทดสอบ MBTI
             </Link>
           </div>
-          <p className="mt-4 text-sm text-gray-500">ใช้เวลาไม่ถึง 2 นาที · ไม่ต้อง login</p>
+          <p className="mt-4 text-sm font-medium text-gray-500">ใช้เวลาไม่ถึง 2 นาที · ไม่ต้อง login</p>
 
           {/* Secondary entry: TCAS Folio teaser — quieter alternative path */}
           <div
@@ -110,23 +114,32 @@ export default function HomePage() {
           <FadeIn>
             <div className="mb-10 flex items-center justify-center divide-x divide-gray-200">
               <div className="px-6 sm:px-10">
-                <p className="text-3xl font-extrabold tabular-nums tracking-tight text-gray-900 sm:text-4xl">
+                <p
+                  className="text-[2rem] font-extrabold tabular-nums text-gray-900 sm:text-[2.5rem]"
+                  style={{ letterSpacing: "-0.03em", lineHeight: 1.1 }}
+                >
                   <CountUp to={50} suffix="+" />
                 </p>
-                <p className="mt-2 text-[13px] text-gray-500">มหาวิทยาลัย</p>
+                <p className="mt-2 text-sm font-medium text-gray-500">มหาวิทยาลัย</p>
               </div>
               <div className="px-6 sm:px-10">
-                <p className="text-3xl font-extrabold tabular-nums tracking-tight text-gray-900 sm:text-4xl">
+                <p
+                  className="text-[2rem] font-extrabold tabular-nums text-gray-900 sm:text-[2.5rem]"
+                  style={{ letterSpacing: "-0.03em", lineHeight: 1.1 }}
+                >
                   <CountUp to={500} suffix="+" />
                 </p>
-                <p className="mt-2 text-[13px] text-gray-500">คณะ</p>
+                <p className="mt-2 text-sm font-medium text-gray-500">คณะ</p>
               </div>
               <div className="px-6 sm:px-10">
-                <p className="text-3xl font-extrabold tabular-nums tracking-tight text-gray-900 sm:text-4xl">
+                <p
+                  className="text-[2rem] font-extrabold tabular-nums text-gray-900 sm:text-[2.5rem]"
+                  style={{ letterSpacing: "-0.03em", lineHeight: 1.1 }}
+                >
                   <CountUp to={6} />
                   <span className="ml-1 text-2xl font-bold text-green-600 sm:text-3xl">ปี</span>
                 </p>
-                <p className="mt-2 text-[13px] text-gray-500">ข้อมูลย้อนหลัง</p>
+                <p className="mt-2 text-sm font-medium text-gray-500">ข้อมูลย้อนหลัง</p>
               </div>
             </div>
           </FadeIn>
@@ -142,12 +155,12 @@ export default function HomePage() {
                 {featuredUniversities.map((uni) => (
                   <span
                     key={uni}
-                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 transition-colors group-hover:border-green-200 group-hover:text-green-800"
+                    className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[13px] font-medium text-gray-700 transition-colors group-hover:border-green-200 group-hover:text-green-800"
                   >
                     {uni}
                   </span>
                 ))}
-                <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 bg-transparent px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors group-hover:border-green-400 group-hover:text-green-700">
+                <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 bg-transparent px-3 py-1.5 text-[13px] font-semibold text-gray-500 transition-colors group-hover:border-green-400 group-hover:text-green-700">
                   +40 มหาวิทยาลัยอื่น
                   <ArrowRight className="h-3 w-3" />
                 </span>
@@ -156,7 +169,7 @@ export default function HomePage() {
           </FadeIn>
 
           <FadeIn delay={200}>
-            <p className="mt-8 text-xs text-gray-500">อ้างอิงข้อมูลจากเว็บไซต์ mytcas</p>
+            <p className="mt-8 text-sm text-gray-500">อ้างอิงข้อมูลจากเว็บไซต์ mytcas</p>
           </FadeIn>
         </div>
       </section>
@@ -166,8 +179,8 @@ export default function HomePage() {
         <div className="mx-auto max-w-2xl">
           <FadeIn>
             <h2
-              className="mb-10 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-[2rem] sm:leading-[1.15]"
-              style={{ textWrap: "balance", letterSpacing: "-0.025em" } as React.CSSProperties}
+              className="mb-10 text-[1.75rem] font-extrabold text-gray-900 sm:text-[2rem]"
+              style={{ textWrap: "balance", letterSpacing: "-0.03em", lineHeight: 1.15 } as React.CSSProperties}
             >
               จากไม่แน่ใจ ถึงพร้อมสมัคร TCAS
             </h2>
@@ -179,12 +192,12 @@ export default function HomePage() {
                 href="/analyze"
                 className="group flex items-start gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-green-200 hover:bg-green-50 sm:items-center"
               >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-extrabold tabular-nums text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
                   1
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">รู้ว่าคะแนนของตัวเองอยู่ตรงไหน</p>
-                  <p className="mt-1 text-sm text-gray-600 transition-colors group-hover:text-green-800">
+                  <p className="text-[17px] font-bold tracking-tight text-gray-900 transition-colors group-hover:text-green-900">รู้ว่าคะแนนของตัวเองอยู่ตรงไหน</p>
+                  <p className="mt-1.5 text-sm leading-[1.6] text-gray-600 transition-colors group-hover:text-green-800">
                     กรอกคะแนน เลือกคณะ ดูว่าห่างจากคะแนนตัดเท่าไหร่ และโอกาสรับอยู่ที่ระดับไหน
                   </p>
                 </div>
@@ -197,12 +210,12 @@ export default function HomePage() {
                 href="/scores"
                 className="group flex items-start gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-green-200 hover:bg-green-50 sm:items-center"
               >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-extrabold tabular-nums text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
                   2
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">สำรวจแนวโน้มคะแนนย้อนหลัง</p>
-                  <p className="mt-1 text-sm text-gray-600 transition-colors group-hover:text-green-800">
+                  <p className="text-[17px] font-bold tracking-tight text-gray-900 transition-colors group-hover:text-green-900">สำรวจแนวโน้มคะแนนย้อนหลัง</p>
+                  <p className="mt-1.5 text-sm leading-[1.6] text-gray-600 transition-colors group-hover:text-green-800">
                     ดูว่าคณะที่สนใจตัดคะแนนเพิ่มหรือลดในช่วง 6 ปีที่ผ่านมา เพื่อประเมินปีนี้
                   </p>
                 </div>
@@ -215,12 +228,12 @@ export default function HomePage() {
                 href="/mbti"
                 className="group flex items-start gap-5 rounded-2xl border border-gray-100 bg-gray-50 p-5 transition-all hover:border-green-200 hover:bg-green-50 sm:items-center"
               >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-extrabold tabular-nums text-gray-600 transition-colors group-hover:bg-green-100 group-hover:text-green-700">
                   3
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-900 transition-colors group-hover:text-green-900">ค้นหาตัวเองว่าคุณเหมาะกับคณะอะไร</p>
-                  <p className="mt-1 text-sm text-gray-600 transition-colors group-hover:text-green-800">
+                  <p className="text-[17px] font-bold tracking-tight text-gray-900 transition-colors group-hover:text-green-900">ค้นหาตัวเองว่าคุณเหมาะกับคณะอะไร</p>
+                  <p className="mt-1.5 text-sm leading-[1.6] text-gray-600 transition-colors group-hover:text-green-800">
                     ยังไม่แน่ใจว่าจะเรียนอะไร ลองดูว่าคนที่มีบุคลิกแบบเดียวกับคุณมักเลือกเรียนอะไร
                   </p>
                 </div>
@@ -237,7 +250,7 @@ export default function HomePage() {
       {/* Footer + CTA */}
       <footer className="border-t border-gray-100 bg-white px-4 py-6">
         <div className="mx-auto max-w-6xl space-y-4">
-          <nav aria-label="Footer links" className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-gray-500">
+          <nav aria-label="Footer links" className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-[13px] font-medium text-gray-500">
             <Link href="/tcas/calculator"   className="hover:text-green-700">TCAS Calculator</Link>
             <Link href="/tcas/min-scores"   className="hover:text-green-700">คะแนนต่ำสุด TCAS</Link>
             <Link href="/scores"            className="hover:text-green-700">คะแนนย้อนหลัง</Link>
@@ -324,13 +337,13 @@ function TcasFolioFeature() {
                 </span>
 
                 <h2
-                  className="text-xl font-extrabold leading-tight tracking-tight text-gray-900 sm:text-2xl"
-                  style={{ textWrap: "balance", letterSpacing: "-0.025em" } as React.CSSProperties}
+                  className="text-[1.5rem] font-extrabold text-gray-900 sm:text-[1.75rem]"
+                  style={{ textWrap: "balance", letterSpacing: "-0.03em", lineHeight: 1.15 } as React.CSSProperties}
                 >
                   คู่มือทำพอร์ตโฟลิโอ TCAS
                 </h2>
 
-                <p className="mt-3 text-sm leading-relaxed text-gray-600 sm:text-base">
+                <p className="mt-3 text-[15px] leading-[1.6] text-gray-600 sm:text-base">
                   วิดีโอ 3 ตอน + PDF คู่มือ ครบทุกขั้นตอนตั้งแต่วางโครงพอร์ต ใช้ระบบ TCASFolio
                   จนถึงเตรียมสัมภาษณ์รอบ Portfolio
                 </p>
@@ -342,17 +355,17 @@ function TcasFolioFeature() {
                       key={ch.ep}
                       className="flex items-start gap-2.5 rounded-xl border border-gray-100 bg-gray-50/70 p-3"
                     >
-                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-white text-xs font-bold text-green-700 ring-1 ring-green-100">
+                      <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-white text-xs font-extrabold tabular-nums text-green-700 ring-1 ring-green-100">
                         {ch.ep.replace("EP ", "")}
                       </span>
-                      <span className="text-xs font-medium leading-snug text-gray-700">
+                      <span className="text-[13px] font-semibold leading-snug text-gray-700">
                         {ch.title}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-5 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 sm:w-fit">
+                <div className="mt-5 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-[13px] font-semibold text-red-700 sm:w-fit">
                   <FileText className="h-4 w-4 flex-shrink-0" strokeWidth={2} />
                   แถมฟรี PDF คู่มือดาวน์โหลดได้
                 </div>

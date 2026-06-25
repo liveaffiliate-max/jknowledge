@@ -77,13 +77,13 @@ export function NavDropdown({ label }: NavDropdownProps) {
                   <div className="min-w-0 flex-1">
                     <p
                       className={cn(
-                        "text-sm font-semibold",
+                        "text-sm font-bold tracking-tight",
                         active ? "text-green-800" : "text-gray-900"
                       )}
                     >
                       {item.label}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-500 leading-snug">
+                    <p className="mt-1 text-[13px] leading-[1.5] text-gray-500">
                       {item.description}
                     </p>
                   </div>
